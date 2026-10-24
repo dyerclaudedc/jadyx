@@ -651,6 +651,10 @@ const Catalog SpanishCatalog = MakeCatalog({
     {Text::PerformanceModeHint, L"TV dibuja hasta 1080p; Portátil hasta 720p, más ligero para la GPU y la memoria. Se aplica al iniciar un juego"},
     {Text::PerformanceModeTv, L"TV · 1080p"},
     {Text::PerformanceModeHandheld, L"Portátil · 720p"},
+    {Text::GameProfile, L"Perfil"},
+    {Text::GameProfileHint, L"Modo de rendimiento de este juego"},
+    {Text::GameProfileBody, L"Modo de rendimiento de este juego: {0}. Portátil dibuja a 720p, más ligero para la GPU y la memoria; TV dibuja a 1080p. Se aplica la próxima vez que inicies el juego."},
+    {Text::GameProfileFollow, L"Como en Ajustes · {0}"},
 
     // Tabs, sections and filters
     {Text::TabHome, L"Inicio"},

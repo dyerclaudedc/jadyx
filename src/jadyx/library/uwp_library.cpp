@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "jadyx/library/uwp_library.h"
 #include "jadyx/app/console_model.h"
+#include "jadyx/settings/game_profile.h"
 #include "jadyx/input/stick_navigation.h"
 #include "jadyx/input/controller_catalog.h"
 #include "jadyx/ui/text_entry_input.h"
@@ -121,6 +122,8 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
     system_page.updated = updater.CurrentPhase() == Updates::Phase::Confirmed;
     // The selected game's options (Menu), and its cheats page while open.
     GameOptionsPage game_options;
+    std::optional<Settings::ConsoleMode> profile_mode; // The options' game's (game_profile.h).
+    std::size_t profile_game = SIZE_MAX;                // Which game profile_mode was read for.
     std::optional<std::size_t> requested_game_option;
     std::optional<std::size_t> requested_manager_tab;
     std::unique_ptr<Content::ContentSession> content_session;
@@ -1767,6 +1770,14 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
                 const auto option = GameOptions()[game_options.selected];
                 if (!GameOptionHasManager(option)) send(Play, GameOptionsInput::Confirm);
                 send(Quit, GameOptionsInput::Back);
+                if (option == GameOption::Profile && std::exchange(game_options.cycle_profile, false)) {
+                    // Follow Settings, TV, Handheld: the next boot of the game reads it.
+                    const auto& game = scan.entries[game_options.game];
+                    const auto next = NextGameConsoleMode(LoadGameConsoleMode(game.launch_path));
+                    if (!SaveGameConsoleMode(game.launch_path, next)) notify(T::SystemSaveFailed);
+                    profile_mode = next;
+                    dirty = true;
+                }
                 if (option == GameOption::Remove && (game_options.confirm_discard || game_options.discard)) {
                     const auto& game = scan.entries[game_options.game];
                     auto files = FindDumpFiles(scan.entries, game.launch_path);
@@ -2225,12 +2236,19 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
         }
         const bool draw = dirty || canvas->Animating();
         if (draw) {
+            if (game_options.open && game_options.game < scan.entries.size() && profile_game != game_options.game) {
+                profile_game = game_options.game;
+                profile_mode = LoadGameConsoleMode(scan.entries[game_options.game].launch_path);
+            } else if (!game_options.open) {
+                profile_game = SIZE_MAX; // Read again when the options open.
+            }
             const GameOptionsView options_view{
                 game_options, game_options.open && !configuration.open && game_options.game < scan.entries.size() ? &scan.entries[game_options.game] : nullptr,
                 cheat_session ? &*cheat_session : nullptr, cheats_page, options_notice, content_session.get(),
                 mod_session.get(), &mods_page,
                 game_options.open && game_options.game < scan.entries.size() &&
-                    FindDumpFiles(scan.entries, scan.entries[game_options.game].launch_path).kept};
+                    FindDumpFiles(scan.entries, scan.entries[game_options.game].launch_path).kept,
+                profile_mode, ResolveConsoleMode(system_page.settings, system_page.series_s)};
             // Titles, Pulse sessions and plays arrive after the shelf was made: keep it current,
             // the focus on the same game.
             if (tab == LibraryTab::Library && !loading) {

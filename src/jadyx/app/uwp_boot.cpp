@@ -88,6 +88,7 @@
 
 #include "jadyx/app/alloc_watch.h"
 #include "jadyx/app/console_model.h"
+#include "jadyx/settings/game_profile.h"
 #include "jadyx/cheats/cheat_session.h"
 #include "jadyx/cheats/cheats_page.h"
 #include "jadyx/cheats/cheats_view.h"
@@ -212,7 +213,7 @@ struct BootSurface {
 };
 
 // Force the device-light configuration the boot needs.
-static void ApplyHeadlessBootSettings(const BootSurface& surface) {
+static void ApplyHeadlessBootSettings(const BootSurface& surface, std::string_view game_path) {
     Settings::values.renderer_backend = surface.core_window != nullptr
                                             ? Settings::RendererBackend::Direct3D12
                                             : Settings::RendererBackend::Null;
@@ -225,6 +226,11 @@ static void ApplyHeadlessBootSettings(const BootSurface& surface) {
     // it ships. Also sets the interface language for the in-game menu and the performance mode
     // (docked or handheld).
     ApplySystemSettings();
+    // The game's own profile (game_profile.h) overrides the performance mode for this game alone.
+    if (const auto mode = LoadGameConsoleMode(game_path)) {
+        Settings::values.use_docked_mode.SetValue(*mode);
+        LOG_INFO(Frontend, "Game profile: performance mode {}", Settings::CanonicalizeEnum(*mode));
+    }
     // Player 1 is bound to the virtual_gamepad engine (uwp_input.h) and presented to the game as
     // the controller chosen in the library (a Pro Controller unless told otherwise). After the
     // system settings: a handheld controller style makes the console undocked whatever the
@@ -435,7 +441,7 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
               std::to_string(std::chrono::duration<double, std::milli>(timer_resolution).count()) +
               " ms");
     WriteDiag("step: device " + std::string(Jadyx::ConsoleModelName(Jadyx::DetectConsoleModel())));
-    ApplyHeadlessBootSettings(config.null_renderer ? BootSurface{} : surface);
+    ApplyHeadlessBootSettings(config.null_renderer ? BootSurface{} : surface, nro_path);
     if (config.null_audio) {
         Settings::values.sink_id = Settings::AudioEngine::Null;
     }

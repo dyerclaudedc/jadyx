@@ -75,6 +75,7 @@ add_executable(jadyx WIN32
     ui/ui_text.h
     # Settings > System and the library's on-disk metadata cache.
     settings/system_settings.h
+    settings/game_profile.h
     settings/nacp_language.h
     settings/system_page.h
     settings/upscaling.h
@@ -86,6 +87,7 @@ add_executable(jadyx WIN32
     game/uwp_software_keyboard.cpp
     game/uwp_software_keyboard.h
     settings/uwp_system_settings.cpp
+    settings/uwp_game_profile.cpp
     settings/uwp_system_settings.h
     library/library_cache.cpp
     library/library_cache.h

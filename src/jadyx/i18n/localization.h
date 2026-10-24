@@ -601,6 +601,10 @@ enum class Text : std::uint16_t {
     PerformanceModeHint,
     PerformanceModeTv,
     PerformanceModeHandheld,
+    GameProfile,
+    GameProfileHint,
+    GameProfileBody,
+    GameProfileFollow,
 
     // Tabs, sections and filters
     TabHome,

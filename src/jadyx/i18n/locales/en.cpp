@@ -651,6 +651,10 @@ const Catalog EnglishCatalog = MakeCatalog({
     {Text::PerformanceModeHint, L"TV renders up to 1080p; Handheld up to 720p, lighter on the GPU and memory. Applies when a game starts"},
     {Text::PerformanceModeTv, L"TV · 1080p"},
     {Text::PerformanceModeHandheld, L"Handheld · 720p"},
+    {Text::GameProfile, L"Profile"},
+    {Text::GameProfileHint, L"Performance mode for this game"},
+    {Text::GameProfileBody, L"Performance mode for this game: {0}. Handheld renders at 720p, lighter on the GPU and memory; TV renders at 1080p. Applies the next time the game starts."},
+    {Text::GameProfileFollow, L"As in Settings · {0}"},
 
     // Tabs, sections and filters
     {Text::TabHome, L"Home"},

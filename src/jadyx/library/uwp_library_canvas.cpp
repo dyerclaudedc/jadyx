@@ -1831,6 +1831,12 @@ private:
                     I18n::Format(game.pulse_current ? T::PulseSavedOn : T::PulseSavedOther, {game.pulse_saved});
                 const auto discard = I18n::Format(T::PulseDiscardConfirm, {PromptKey(Navigation::Play).letters});
                 in_place(option, pulse, game.pulse_saved.empty() ? std::wstring_view{} : std::wstring_view{discard});
+            } else if (option == GameOption::Profile) {
+                // A moves to the next mode at once: Settings', then TV, then Handheld.
+                const std::wstring value =
+                    view.profile_mode ? std::wstring{Tr(ConsoleModeText(*view.profile_mode))}
+                                      : I18n::Format(T::GameProfileFollow, {Tr(ConsoleModeText(view.system_mode))});
+                in_place(option, I18n::Format(T::GameProfileBody, {value}), Tr(T::Change));
             } else if (option == GameOption::Remove) {
                 const bool external = IsStoragePath(game.launch_path);
                 in_place(option, Tr(external ? T::GameRemoveExternal :

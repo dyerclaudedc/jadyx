@@ -19,18 +19,20 @@ namespace Jadyx {
 
 /// Pulse's pane shows the kept session and Remove's what deleting the game takes with it. Both
 /// act in place and only on a second confirmation.
-enum class GameOption : std::uint8_t { Cheats, Mods, Updates, Dlc, Pulse, Remove };
+/// Profile changes the game's performance mode in place, one choice per press.
+enum class GameOption : std::uint8_t { Cheats, Mods, Updates, Dlc, Profile, Pulse, Remove };
 
 /// The options shown, in order.
 inline std::span<const GameOption> GameOptions() {
     static constexpr std::array options{GameOption::Mods, GameOption::Cheats, GameOption::Updates,
-                                        GameOption::Dlc, GameOption::Pulse, GameOption::Remove};
+                                        GameOption::Dlc, GameOption::Profile, GameOption::Pulse,
+                                        GameOption::Remove};
     return options;
 }
 
 /// False for the panes that act in place (with a second press) instead of opening a manager.
 inline bool GameOptionHasManager(GameOption option) {
-    return option != GameOption::Pulse && option != GameOption::Remove;
+    return option != GameOption::Pulse && option != GameOption::Remove && option != GameOption::Profile;
 }
 
 inline I18n::Text GameOptionTitle(GameOption option) {
@@ -39,6 +41,7 @@ inline I18n::Text GameOptionTitle(GameOption option) {
     case GameOption::Dlc: return I18n::Text::ContentDlc;
     case GameOption::Cheats: return I18n::Text::CheatsTitle;
     case GameOption::Mods: return I18n::Text::ModsTitle;
+    case GameOption::Profile: return I18n::Text::GameProfile;
     case GameOption::Pulse: return I18n::Text::PulseSession;
     case GameOption::Remove: return I18n::Text::GameRemove;
     }
@@ -51,6 +54,7 @@ inline I18n::Text GameOptionHint(GameOption option) {
     case GameOption::Dlc: return I18n::Text::ContentCategoryHint;
     case GameOption::Cheats: return I18n::Text::CheatsHint;
     case GameOption::Mods: return I18n::Text::ModsHint;
+    case GameOption::Profile: return I18n::Text::GameProfileHint;
     case GameOption::Pulse: return I18n::Text::PulseNone;
     case GameOption::Remove: return I18n::Text::GameRemoveHint;
     }
@@ -63,6 +67,7 @@ inline UiIcon GameOptionIcon(GameOption option) {
     case GameOption::Dlc: return UiIcon::Folder;
     case GameOption::Cheats: return UiIcon::Cheats;
     case GameOption::Mods: return UiIcon::Mods;
+    case GameOption::Profile: return UiIcon::Settings;
     case GameOption::Pulse: return UiIcon::Archive;
     case GameOption::Remove: return UiIcon::Remove;
     }
@@ -78,6 +83,7 @@ struct GameOptionsPage {
     std::optional<GameOption> page; ///< Selected manager; Pulse has its own pane in the shell.
     bool confirm_discard{}; ///< A was pressed once on Pulse or Remove; a second press acts.
     bool discard{};         ///< Confirmed: the library discards the session or deletes the game.
+    bool cycle_profile{};   ///< A on Profile: the library moves the game to its next mode.
     /// The pane below the bars: LB/RB switch sections and LT/RT the manager's tabs, so the
     /// stick and the d-pad only move inside the pane. A pointer can still focus a bar.
     GameOptionsFocus focus{GameOptionsFocus::Content};
@@ -121,6 +127,10 @@ inline void HandleGameOptionsInput(GameOptionsPage& options, GameOptionsInput in
         SelectGameOption(options, (options.selected + 1) % count);
         break;
     case GameOptionsInput::Confirm:
+        if (GameOptions()[options.selected] == GameOption::Profile) {
+            options.cycle_profile = true; // Acts at once: nothing to lose, so no second press.
+            break;
+        }
         if (!GameOptionHasManager(GameOptions()[options.selected])) {
             options.confirm_discard = !confirming;
             options.discard = confirming;

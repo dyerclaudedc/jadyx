@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #include <memory>
+#include <optional>
 #include <vector>
 #include "jadyx/content/content_session.h"
 #include <string_view>
@@ -12,6 +13,7 @@
 #include "jadyx/library/library_layout.h"
 #include "jadyx/mods/mod_session.h"
 #include "jadyx/mods/mods_page.h"
+#include "common/settings.h"
 #include "jadyx/settings/system_page.h"
 #include "jadyx/input/uwp_input.h"
 #include "jadyx/input/uwp_controllers.h"
@@ -28,6 +30,10 @@ struct GameOptionsView {
     const Mods::ModSession* mods{};      ///< The open mods page's.
     const Mods::ModsPage* mods_page{};
     bool other_copies{};                 ///< Another dump of the game stays if this one is deleted.
+    /// The game's performance mode (game_profile.h); nullopt follows Settings, which resolves to
+    /// `system_mode`.
+    std::optional<Settings::ConsoleMode> profile_mode{};
+    Settings::ConsoleMode system_mode{Settings::ConsoleMode::Docked};
 };
 /// The active controller's battery, as Windows.Gaming.Input reports it; unknown when it does not.
 struct ControllerBattery {
