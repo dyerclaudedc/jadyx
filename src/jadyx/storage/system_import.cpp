@@ -143,7 +143,9 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
             }
         if(nca.GetTitleId()==0x0100000000000816ULL&&nca.GetType()==FileSys::NCAContentType::Meta&&
            !nca.GetSubdirectories().empty())
-            if(const auto cnmt=nca.GetSubdirectories()[0]->GetFile("SystemUpdate_0100000000000816.cnmt")) {
+            // Its one .cnmt, whatever the firmware names it.
+            for(const auto& cnmt:nca.GetSubdirectories()[0]->GetFiles()) {
+                if(Lower(Utf8(fs::path{cnmt->GetName()}.extension()))!=".cnmt")continue;
                 update=true;
                 for(const auto& record:FileSys::CNMT{cnmt}.GetMetaRecords())listed.insert(record.title_id);
             }
@@ -170,7 +172,9 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
         if(update&&listed.contains(title))continue;
         const auto found=owner.find(name);
         if(update&&found!=owner.end()&&system_title(found->second))continue;
-        LOG_WARNING(Frontend,"Firmware import: title {:016X} ({}) is not part of the system update",title,name);
+        LOG_WARNING(Frontend,"Firmware import: title {:016X} ({}) is not part of the system update "
+                    "(update meta {}, {} titles listed, owner {:016X})",title,name,update?"found":"missing",
+                    listed.size(),found!=owner.end()?found->second:0);
         Require(false,"firmware_game");
     }
     Require(!strict||(system&&mii),"firmware_incomplete");return info;
