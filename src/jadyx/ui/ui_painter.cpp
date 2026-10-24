@@ -86,6 +86,19 @@ void UiPainter::Card(float x, float y, float w, float h, float radius) {
     Outline(x + 0.5f, y + 0.5f, w - 1, h - 1, radius, Palette::Hairline, Theme::dark ? 0.08f : 0.06f);
 }
 
+void UiPainter::Glass(float x, float y, float w, float h, float radius) {
+    if (Theme::dark) {
+        Round(x, y + 10, w, h, radius, Palette::Shadow, 0.18f);
+        Round(x, y, w, h, radius, 0x1f1b19, 0.58f);
+        Outline(x + 0.5f, y + 0.5f, w - 1, h - 1, radius, 0xf5f2ed, 0.12f);
+    } else {
+        Round(x, y + 12, w, h, radius, Palette::Shadow, 0.04f);
+        Round(x, y + 4, w, h, radius, Palette::Shadow, 0.04f);
+        Round(x, y, w, h, radius, Palette::Surface, 0.55f);
+        Outline(x + 0.5f, y + 0.5f, w - 1, h - 1, radius, Palette::Surface, 0.75f);
+    }
+}
+
 IDWriteTextLayout* UiPainter::TypeLayout(std::wstring_view text, TypeRole role, float width,
                                      TextAlign align, unsigned lines) {
     const auto index = static_cast<unsigned>(role);

@@ -1304,7 +1304,7 @@ private:
     static constexpr std::size_t SettingsVisibleRows = 7;
     void DrawNetworkConnection(const ConfigurationPanel& configuration) {
         const auto& network = configuration.network;
-        Type(L"J A D Y X", TypeRole::HeadlineSmall, 80, 44, 400, Palette::Text);
+        DrawWordmark(80, 56);
         if (network.paired)
             Type(Tr(T::NetworkPaired), TypeRole::LabelLarge, 720, 52, 480,
                  Palette::TextHint, 1, TextAlign::Trailing);
@@ -1369,7 +1369,7 @@ private:
     void DrawUpdateGuide(const ConfigurationPanel& configuration, const Updates::Snapshot& update) {
         const auto& network = configuration.network;
         const bool code = network.running && !network.code_expired && network.code.size() == 8;
-        Type(L"J A D Y X", TypeRole::HeadlineSmall, 80, 44, 400, Palette::Text);
+        DrawWordmark(80, 56);
         const std::wstring installed{winrt::to_hstring(Updates::FormatVersion(update.installed))};
         const std::wstring incoming = update.release ?
             std::wstring{winrt::to_hstring(Updates::FormatVersion(update.release->version))} : installed;
@@ -1455,7 +1455,10 @@ private:
         const float kicker_width = MeasureType(kicker, TypeRole::Caps);
         Type(kicker, TypeRole::Caps, Margin, 92, kicker_width + 4, Palette::TextSecondary);
         Type(L"·", TypeRole::Label, Margin + kicker_width + 12, 92, 12, Palette::TextSecondary, 0.6f);
-        Type(L"Jadyx " + version_text, TypeRole::Label, Margin + kicker_width + 28, 92, 300, Palette::TextHint);
+        Type(L"Dyer Play " + version_text, TypeRole::Label, Margin + kicker_width + 28, 92, 300, Palette::TextHint);
+        // The categories and the emulator's data share one glass panel, as on the screen.
+        Glass(SettingsListX - 14, SettingsListTop - 14, SettingsListWidth + 28,
+              static_cast<float>(HomeRowCount) * SettingsListStride + 18 + 176 + 24, 24);
         // The categories.
         static constexpr std::array<ConfigurationIcon, HomeRowCount> icons{
             ConfigurationIcon::Settings, ConfigurationIcon::Controller, ConfigurationIcon::Folder};
@@ -1464,11 +1467,11 @@ private:
             const float x = SettingsListX, y = SettingsListTop + i * SettingsListStride;
             const float w = SettingsListWidth, h = SettingsListHeight;
             const bool chosen = i == category;
-            if (chosen && !in_pane) {
-                FocusGlow(x, y, w, h, 14, 1);
+            // The chosen category is a white card; the red ring while the list has the focus.
+            if (chosen) {
+                Round(x, y + 3, w, h, 14, Palette::Shadow, 0.06f);
                 Round(x, y, w, h, 14, Palette::RowActive);
-            } else if (chosen) {
-                Round(x, y, w, h, 14, Palette::RowActive, 0.9f);
+                if (!in_pane) FocusGlow(x, y, w, h, 14, 1);
             }
             std::wstring summary;
             if (i == HomeSystem) {
@@ -1494,15 +1497,14 @@ private:
         {
             const float x = SettingsListX, w = SettingsListWidth;
             const float y = SettingsListTop + static_cast<float>(HomeRowCount) * SettingsListStride + 18;
-            Round(x, y, w, 176, 18, Palette::Surface, 0.82f);
-            Outline(x + 0.5f, y + 0.5f, w - 1, 175, 18, Palette::Hairline, 0.06f);
+            Round(x, y, w, 176, 18, Palette::Canvas, 0.6f);
             Type(Tr(T::EmulatorData), TypeRole::Caps, x + 20, y + 20, 200, Palette::TextSecondary);
             const auto keys = Tr(status.keys_ready ? T::KeysReady : T::KeysMissing);
             const float chip = MeasureType(keys, TypeRole::Label) + 24;
             Chip(keys, x + w - 20 - chip, y + 15, status.keys_ready ? Palette::Text : Palette::Warning);
             const float tile_w = (w - 40 - 12) / 2;
             const auto tile = [&](float tx, std::wstring_view label, std::size_t count) {
-                Round(tx, y + 54, tile_w, 68, 12, Palette::Canvas, 0.7f);
+                Round(tx, y + 54, tile_w, 68, 12, Palette::Surface);
                 Type(label, TypeRole::Label, tx + 12, y + 64, tile_w - 24, Palette::TextSecondary);
                 Type(std::to_wstring(count), TypeRole::HeadlineSmall, tx + 12, y + 84, tile_w - 24, Palette::Text);
             };
@@ -1516,8 +1518,8 @@ private:
         static constexpr std::array<T, HomeRowCount> pages{T::SystemTitle, T::ControllersAndKeyboard, T::FileManager};
         static constexpr std::array<T, HomeRowCount> about{T::SystemSubtitle, T::ControllerSubtitle, T::FilesSubtitle};
         const float px = SettingsPaneX, pw = SettingsPaneWidth;
-        Type(Tr(pages[category]), TypeRole::HeadlineLarge, px, 122, pw, Palette::Text);
-        Type(Tr(about[category]), TypeRole::Body, px, 176, pw, Palette::TextSecondary);
+        Type(Tr(pages[category]), TypeRole::HeadlineLarge, px, 118, pw, Palette::Text);
+        Type(Tr(about[category]), TypeRole::BodyLarge, px, 170, pw, Palette::TextHint);
         const auto rows = SettingsRows(view, category);
         if (rows.empty()) return;
         const std::size_t selected = !in_pane ? SIZE_MAX :
@@ -1526,10 +1528,13 @@ private:
         const std::size_t visible = std::min(rows.size(), SettingsVisibleRows);
         const std::size_t first = selected != SIZE_MAX && selected >= visible ? selected - visible + 1 : 0;
         const float card_h = visible * SettingsRowStride - (SettingsRowStride - SettingsRowHeight) + 24;
-        Round(px, SettingsRowsTop - 12, pw, card_h, 18, Palette::Surface, 0.82f);
-        Outline(px + 0.5f, SettingsRowsTop - 11.5f, pw - 1, card_h - 1, 18, Palette::Hairline, 0.06f);
+        Glass(px, SettingsRowsTop - 12, pw, card_h, 24);
         for (std::size_t i = first; i < first + visible; ++i) {
             const float y = SettingsRowsTop + (i - first) * SettingsRowStride;
+            // Hairlines between rows, as on the screen; the focused row lifts off them.
+            if (i + 1 < first + visible && i != selected && i + 1 != selected)
+                Round(px + 30, y + SettingsRowHeight + (SettingsRowStride - SettingsRowHeight) / 2, pw - 60, 1, 0,
+                      Palette::Hairline, 0.07f);
             DrawSettingsRow(rows[i], px + 12, y, pw - 24, SettingsRowHeight, i == selected, in_pane ? 1.0f : 0.75f);
             AddHit(px + 12, y, pw - 24, SettingsRowHeight, LibraryHit::SettingRow, i);
         }
@@ -1538,10 +1543,8 @@ private:
     void DrawSettingsRow(const SettingsRow& row, float x, float y, float w, float h, bool focused, float alpha) {
         using Kind = SettingsRow::Kind;
         if (focused) {
-            FocusGlow(x, y, w, h, 12, 1);
-            Round(x, y, w, h, 12, Palette::RowActive);
-        } else {
-            Round(x, y, w, h, 12, Palette::Canvas, 0.55f);
+            Round(x, y, w, h, 14, Palette::RowActive);
+            FocusGlow(x, y, w, h, 14, 1);
         }
         const float middle = y + h / 2;
         float right = x + w - 16;
@@ -1556,14 +1559,19 @@ private:
             float width = 2 * inset;
             for (const auto& label : row.segments) width += MeasureType(label, TypeRole::LabelLarge) + 2 * pad;
             right -= width;
-            Round(right, middle - height / 2, width, height, 9, Palette::Graphite, 0.9f);
+            // The screens' segmented control: a faint ink track, the chosen option a white capsule.
+            Round(right, middle - height / 2, width, height, height / 2, Palette::Hairline, 0.06f);
             float cursor = right + inset;
             for (std::size_t i = 0; i < row.segments.size(); ++i) {
                 const float segment = MeasureType(row.segments[i], TypeRole::LabelLarge) + 2 * pad;
                 const bool on = i == row.on_segment;
-                if (on) Round(cursor, middle - height / 2 + inset, segment, height - 2 * inset, 7, Palette::Accent);
+                if (on) {
+                    const float capsule = height - 2 * inset;
+                    Round(cursor, middle - height / 2 + inset + 2, segment, capsule, capsule / 2, Palette::Shadow, 0.08f);
+                    Round(cursor, middle - height / 2 + inset, segment, capsule, capsule / 2, Palette::Surface);
+                }
                 Type(row.segments[i], TypeRole::LabelLarge, cursor, middle - 10, segment,
-                     on ? Palette::OnAccent : Palette::TextSecondary, alpha, TextAlign::Center);
+                     on ? Palette::Text : Palette::TextHint, alpha, TextAlign::Center);
                 cursor += segment;
             }
             break;
@@ -1573,7 +1581,7 @@ private:
             const float text = std::min(MeasureType(row.value, TypeRole::LabelLarge) + 4, w * 0.45f);
             const float width = text + 2 * 30;
             right -= width;
-            Round(right, middle - 16, width, 32, 9, Palette::Graphite, 0.9f);
+            Round(right, middle - 16, width, 32, 16, Palette::Hairline, 0.06f);
             Type(row.value, TypeRole::LabelLarge, right + 30, middle - 10, text, Palette::Text, alpha);
             const unsigned arrows = focused ? Palette::Text : Palette::TextSecondary;
             Chevron(right + 16, middle, arrows, true);
@@ -1830,7 +1838,7 @@ private:
             ManagementSurface(0, 0, 1280, 720, GameOptionsLayout::Footer);
             // The panes that act in place: what A does, explained, and A once more confirms it.
             const auto in_place = [&](GameOption option, std::wstring_view body, std::wstring_view action) {
-                Card(56, 214, 1168, 264, 24);
+                Glass(56, 214, 1168, 264, 24);
                 Icon(GameOptionIcon(option), 80, 240, Palette::Text);
                 Type(Tr(GameOptionTitle(option)), TypeRole::HeadlineMedium, 132, 234, 1056, Palette::Text);
                 Type(body, TypeRole::BodyLarge, 80, 298, 1120, Palette::TextHint, 1, TextAlign::Leading, 3);
@@ -1885,13 +1893,30 @@ private:
                 for (auto byte : game.build_id) { build += hex[byte >> 4]; build += hex[byte & 15]; }
                 add(build);
             }
+            // What the history knows, as the screen's stat cards turned into capsules at the right.
+            float chips_left = 1224;
+            const auto stat = [&](std::wstring text) {
+                const float width = MeasureType(text, TypeRole::Label) + 24;
+                if (chips_left - width < title_left + title_width + 40) return;
+                chips_left -= width;
+                Chip(text, chips_left, top + 11, Palette::Text);
+                chips_left -= 8;
+            };
+            if (game.last_played > 0)
+                stat(Upper(I18n::Format(T::LastPlayed, {FormatLastPlayed(game.last_played, UnixNow(), LocalUtcOffset())})));
+            if (game.play_seconds > 0) stat(Upper(FormatPlayTime(game.play_seconds)));
             const float about_left = title_left + title_width + 20;
-            Type(about, TypeRole::Label, about_left, top + 17, 1224 - about_left, Palette::TextHint);
+            Type(about, TypeRole::Label, about_left, top + 17, chips_left - about_left, Palette::TextHint);
             target->PopAxisAlignedClip();
         }
         const auto options = GameOptions();
         const float sections = G::SectionsTop - offset;
-        Round(56, sections, 1168, G::SectionsHeight, G::SectionsHeight / 2, Palette::Surface);
+        // The screens' glass tab bar: a white capsule for the open section, ringed in red while the
+        // bar has the focus.
+        Round(56, sections + 4, 1168, G::SectionsHeight, G::SectionsHeight / 2, Palette::Shadow, 0.05f);
+        Round(56, sections, 1168, G::SectionsHeight, G::SectionsHeight / 2, Palette::Surface, 0.6f);
+        Outline(56.5f, sections + 0.5f, 1167, G::SectionsHeight - 1, G::SectionsHeight / 2 - 0.5f, Palette::Surface,
+                0.9f);
         Badge(keyboard ? L"Q" : nintendo ? L"L" : L"LB", 80, sections + G::SectionsHeight / 2, Palette::Text);
         Badge(keyboard ? L"E" : nintendo ? L"R" : L"RB", 1200, sections + G::SectionsHeight / 2, Palette::Text);
         // The bar spans the bumpers' gap, shared by however many options there are.
@@ -1899,11 +1924,13 @@ private:
         for (std::size_t i = 0; i < options.size(); ++i) {
             const float left = 100 + static_cast<float>(i) * tab_width;
             const bool active = i == view.page.selected;
-            if (active) Round(left, sections + 4, tab_width - 4, 36, 18,
-                (view.page.focus == GameOptionsFocus::Sections) ? Palette::Accent : Palette::RowActive);
+            if (active) {
+                Round(left, sections + 7, tab_width - 4, 36, 18, Palette::Shadow, 0.07f);
+                Round(left, sections + 4, tab_width - 4, 36, 18, Palette::Surface);
+                if (view.page.focus == GameOptionsFocus::Sections) FocusGlow(left, sections + 4, tab_width - 4, 36, 18, 1);
+            }
             Type(Tr(GameOptionTitle(options[i])), TypeRole::LabelLarge, left + 6, sections + 12,
-                tab_width - 16, active && (view.page.focus == GameOptionsFocus::Sections) ? Palette::OnAccent :
-                active ? Palette::Text : Palette::TextHint, 1, TextAlign::Center);
+                tab_width - 16, active ? Palette::Text : Palette::TextHint, 1, TextAlign::Center);
             AddHit(left, sections + 4, tab_width - 4, 36, LibraryHit::GameOptionSelect, i);
         }
         // A confirmation names the key that confirms on this controller ("{0}").

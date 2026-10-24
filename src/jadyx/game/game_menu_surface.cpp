@@ -48,6 +48,18 @@ struct Screen {
     static constexpr float Budget = 512, Credit = 548, Note = 570;
 };
 
+/// The pause menu of the Dyer Play screens: a dark glass panel at the left with the game and its
+/// actions, the paused game sharp or blurred to the right of it, the clock and what draws the game
+/// on a strip along the top. (The cheats page keeps Screen's panel at the right.)
+struct Pause {
+    static constexpr float X = 43, Y = 43, W = 347, H = 634, Inset = 20;
+    static constexpr float InnerX = X + Inset, InnerW = W - 2 * Inset;
+    static constexpr float Kicker = 72, Title = 96;
+    static constexpr float ListTop = 252, RowHeight = 52, RowStride = 56;
+    static constexpr std::size_t VisibleRows = 7;
+    static constexpr float StripX = 430, StripY = 43, StripRight = 1237, StripH = 56;
+};
+
 /// Text under a focused (white) row.
 constexpr unsigned OnAccentSecondary = 0x5c5f64;
 
@@ -382,24 +394,26 @@ struct GameMenuSurface::Impl : UiPainter {
         Type(subtitle, TypeRole::Label, sub_x, S::HeaderY + 28, text_x + text_width - sub_x, Palette::TextSecondary);
     }
 
-    void DrawRow(const GameMenuRow& row, float top, bool active) {
-        using S = Screen;
-        const float x = S::InnerX;
-        const float width = S::InnerWidth - 10;
+    void DrawRow(const GameMenuRow& row, float top, bool active, float x = Screen::InnerX,
+                 float row_width = Screen::InnerWidth - 10, float row_height = Screen::RowHeight) {
+        const float width = row_width;
         const float right = x + width;
         if (active) {
-            Round(x - 1, top + 1, width + 2, S::RowHeight + 2, 15, 0xffffff, 0.06f);
-            Round(x, top, width, S::RowHeight, 14, Palette::Text);
+            // The cream row of the screens, with the red focus ring around it.
+            Round(x, top, width, row_height, 14, Palette::Text);
+            FocusGlow(x, top, width, row_height, 14, 1);
         }
         float text_x = x + 18;
         if (row.icon) {
-            Round(x + 10, top + 10, 36, 36, 10, active ? 0xe4e5e8 : Palette::Graphite);
-            Icon(*row.icon, x + 17, top + 17, active ? Palette::OnAccent : Palette::Text, 22);
-            text_x = x + 58;
+            const float tile = row_height - 20;
+            Round(x + 10, top + 10, tile, tile, 10, active ? 0xe4dfd8u : static_cast<unsigned>(Palette::Graphite));
+            Icon(*row.icon, x + 10 + (tile - 22) / 2, top + 10 + (tile - 22) / 2,
+                 active ? Palette::OnAccent : Palette::Text, 22);
+            text_x = x + 20 + tile;
         }
         const unsigned label_color = active ? Palette::OnAccent : Palette::Text;
         const unsigned secondary = active ? OnAccentSecondary : Palette::TextSecondary;
-        const float middle = top + S::RowHeight / 2;
+        const float middle = top + row_height / 2;
 
         // What sits at the row's end, right to left: a page's ">", a setting's value between its
         // arrows, the button that does it.
@@ -438,34 +452,79 @@ struct GameMenuSurface::Impl : UiPainter {
         if (row.detail.empty()) {
             Type(row.label, TypeRole::Body, text_x, middle - 11, text_width, label_color);
         } else {
-            Type(row.label, TypeRole::Body, text_x, top + 8, text_width, label_color);
-            Type(row.detail, TypeRole::Label, text_x, top + 31, text_width, secondary);
+            Type(row.label, TypeRole::Body, text_x, middle - 20, text_width, label_color);
+            Type(row.detail, TypeRole::Label, text_x, middle + 3, text_width, secondary);
         }
     }
 
+    /// The game in the panel: "Paused" with its red dot and the session's time, the title and
+    /// who made it. Returns where the content under it can start.
+    float DrawPauseHeader(const GameMenuScene& scene) {
+        using P = Pause;
+        Round(P::InnerX + 2, P::Kicker + 4, 7, 7, 3.5f, Palette::Brand);
+        std::wstring kicker{I18n::Tr(Text::MenuPaused)};
+        if (!scene.session.empty()) kicker += L" · " + I18n::Format(Text::MenuSession, {scene.session});
+        Type(Upper(kicker), TypeRole::Caps, P::InnerX + 18, P::Kicker, P::InnerW - 18, Palette::TextHint);
+        const float title = Type(scene.title, TypeRole::HeadlineLarge, P::InnerX, P::Title, P::InnerW,
+                                 Palette::Text, 1, TextAlign::Leading, 2);
+        float y = P::Title + title + 6;
+        if (!scene.details.empty()) {
+            Type(scene.details, TypeRole::Body, P::InnerX, y, P::InnerW, Palette::TextSecondary);
+            y += 24;
+        }
+        return y;
+    }
+
+    /// Along the top, right of the panel: the clock, what draws the game and at what size, and the
+    /// app on this machine.
+    void DrawPauseStrip() {
+        using P = Pause;
+        Glass(P::StripX, P::StripY, P::StripRight - P::StripX, P::StripH, 20);
+        const float middle = P::StripY + P::StripH / 2;
+        SYSTEMTIME now{};
+        GetLocalTime(&now);
+        wchar_t clock[8]{};
+        std::swprintf(clock, std::size(clock), L"%02u:%02u", now.wHour, now.wMinute);
+        Type(clock, TypeRole::HeadlineSmall, P::StripX + 24, middle - 14, 90, Palette::Text);
+        std::wstring renderer = L"DIRECT3D 12";
+        if (frame_size.first)
+            renderer += L" · " + std::to_wstring(frame_size.first) + L"×" + std::to_wstring(frame_size.second);
+        Type(renderer, TypeRole::Caps, P::StripX + 120, middle - 8, 360, Palette::TextHint);
+        std::wstring caption = L"Dyer Play";
+        if (!version_text.empty()) caption += L" " + version_text;
+        Type(Upper(caption), TypeRole::Caps, P::StripRight - 24 - 320, middle - 8, 320, Palette::TextSecondary, 1,
+             TextAlign::Trailing);
+    }
+
     void DrawMenu(const GameMenu& menu, const GameMenuScene& scene) {
-        using S = Screen;
-        DrawScene(scene);
+        using P = Pause;
         const auto page = menu.CurrentPage();
         if (page != menu_page) {
             menu_page = page;
             menu_first = 0;
         }
         const bool quick = page == GameMenu::Page::Quick;
-        const UiIcon icon = page == GameMenu::Page::Controller ? UiIcon::Controller
-                            : page == GameMenu::Page::Display  ? UiIcon::Display
-                                                               : UiIcon::Game;
-        const std::wstring back = quick ? std::wstring{} : I18n::Format(Text::MenuBackTo, {I18n::Tr(Text::MenuQuick)});
-        DrawPanel(icon, menu.PageTitle(), back, !quick);
-
+        Glass(P::X, P::Y, P::W, P::H, 26);
+        DrawPauseStrip();
+        const float below = DrawPauseHeader(scene);
+        // A page under the quick actions says where it is and how to go back.
+        if (!quick) {
+            const float y = std::max(below + 8, P::ListTop - 54.0f);
+            Type(menu.PageTitle(), TypeRole::HeadlineSmall, P::InnerX, y, P::InnerW, Palette::Text);
+            const auto [key, tint] = Key(L"B", ButtonColor::B);
+            const float badge = Badge(key, P::InnerX + BadgeWidth(key) / 2, y + 40, tint);
+            Type(I18n::Format(Text::MenuBackTo, {I18n::Tr(Text::MenuQuick)}), TypeRole::Label,
+                 P::InnerX + badge + 8, y + 32, P::InnerW - badge - 8, Palette::TextSecondary);
+        }
         const auto rows = menu.Rows();
         std::size_t selected = menu.Selected();
-        ClampListWindow(selected, menu_first, rows.size(), S::VisibleRows);
-        const std::size_t end = std::min(rows.size(), menu_first + S::VisibleRows);
+        ClampListWindow(selected, menu_first, rows.size(), P::VisibleRows);
+        const std::size_t end = std::min(rows.size(), menu_first + P::VisibleRows);
         for (std::size_t i = menu_first; i < end; ++i)
-            DrawRow(rows[i], S::ListTop + static_cast<float>(i - menu_first) * S::RowStride, i == selected);
-        ScrollIndicator(S::InnerX + S::InnerWidth - 4, S::ListTop,
-                        S::VisibleRows * S::RowStride - (S::RowStride - S::RowHeight), menu_first, S::VisibleRows,
+            DrawRow(rows[i], P::ListTop + static_cast<float>(i - menu_first) * P::RowStride, i == selected,
+                    P::InnerX, P::InnerW - 10, P::RowHeight);
+        ScrollIndicator(P::InnerX + P::InnerW - 2, P::ListTop,
+                        P::VisibleRows * P::RowStride - (P::RowStride - P::RowHeight), menu_first, P::VisibleRows,
                         rows.size());
 
         if (quick) {

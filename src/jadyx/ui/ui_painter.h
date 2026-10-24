@@ -113,6 +113,9 @@ public:
                  float stroke = 1);
     /// A dialog or card surface: Surface with a white hairline at 8%.
     void Card(float x, float y, float w, float h, float radius = 16);
+    /// The screens' glass panel: translucent white with a white edge on a warm shadow on paper,
+    /// translucent ink with a faint cream edge over a game.
+    void Glass(float x, float y, float w, float h, float radius = 24);
     /// Game-management cards share a quiet surface and a thin white focus ring.
     void SelectionCard(float x, float y, float w, float h, bool focused, float radius = 16);
     /// Clips what is drawn to the rectangle until PopClip (lists that scroll under a fixed edge).
