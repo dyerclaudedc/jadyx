@@ -109,7 +109,11 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
     // program ID lies outside the system range still belongs to the firmware when the meta that
     // lists it is a system title; newer firmware (20.x and later) ships such data contents.
     std::vector<std::pair<u64,std::string>> outside_contents;
-    std::map<std::string,u64> owner;
+    struct Owner {
+        u64 title;
+        FileSys::TitleType type;
+    };
+    std::map<std::string,Owner> owner;
     if(!fs::exists(folder)){Require(!strict,"firmware_incomplete");return info;}
     FileSys::RealVfsFilesystem vfs;
     for(const auto& file:fs::directory_iterator{folder}) {
@@ -138,8 +142,12 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
                 for(const auto& record:meta.GetContentRecords()) {
                     std::string id;
                     for(const auto byte:record.nca_id){id+=hex[byte>>4];id+=hex[byte&15];}
-                    owner.emplace(id,meta.GetTitleID());
+                    owner.emplace(id,Owner{meta.GetTitleID(),meta.GetType()});
                 }
+                // A meta also vouches for its own content (the "<id>.cnmt.nca" it came from).
+                auto self=Lower(Utf8(file.path().stem()));
+                if(self.ends_with(".cnmt"))self.resize(self.size()-5);
+                owner.emplace(self,Owner{meta.GetTitleID(),meta.GetType()});
             }
         if(nca.GetTitleId()==0x0100000000000816ULL&&nca.GetType()==FileSys::NCAContentType::Meta&&
            !nca.GetSubdirectories().empty())
@@ -165,16 +173,29 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
         mii|=nca.GetTitleId()==0x0100000000001009ULL&&nca.GetType()==FileSys::NCAContentType::Program;
         if(progress)progress(count,0);
     }
-    const auto system_title=[&](u64 title) {
-        return (title>>16)==(0x0100000000000000ULL>>16)||listed.contains(title);
+    // System metas (programs, data, the update itself, boot packages) are below 0x80; games,
+    // their updates and DLC are 0x80 and up, and stay refused.
+    const auto system_meta=[&](const Owner& meta) {
+        return static_cast<u8>(meta.type)<static_cast<u8>(FileSys::TitleType::Application)||
+               (meta.title>>16)==(0x0100000000000000ULL>>16)||listed.contains(meta.title);
     };
+    std::string refused;std::size_t refused_count{};
     for(const auto& [title,name]:outside_contents) {
         if(update&&listed.contains(title))continue;
         const auto found=owner.find(name);
-        if(update&&found!=owner.end()&&system_title(found->second))continue;
-        LOG_WARNING(Frontend,"Firmware import: title {:016X} ({}) is not part of the system update "
-                    "(update meta {}, {} titles listed, owner {:016X})",title,name,update?"found":"missing",
-                    listed.size(),found!=owner.end()?found->second:0);
+        if(found!=owner.end()&&system_meta(found->second))continue;
+        if(++refused_count<=6)
+            refused+=fmt::format(" {:016X}/{}/owner={:016X}:{:02X}",title,name.substr(0,8),
+                                 found!=owner.end()?found->second.title:0,
+                                 found!=owner.end()?static_cast<unsigned>(found->second.type):0xFFu);
+    }
+    if(refused_count) {
+        // jadyx_diag.txt records every C++ throw with its message, and the portal's log export
+        // carries that file: a thrown and caught detail is how this reaches a report.
+        const auto detail=fmt::format("firmware_detail ncas={} update={} listed={} metas={} refused={}{}",count,
+                                      update,listed.size(),owner.size(),refused_count,refused);
+        LOG_WARNING(Frontend,"{}",detail);
+        try{throw std::runtime_error(detail);}catch(const std::runtime_error&){}
         Require(false,"firmware_game");
     }
     Require(!strict||(system&&mii),"firmware_incomplete");return info;
