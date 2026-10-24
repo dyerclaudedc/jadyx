@@ -164,6 +164,15 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
     panel.keyboard.bindings = LoadKeyboardBindings();
     auto capture_until = std::chrono::steady_clock::time_point{};
     std::wstring notice; // Library scan/metadata messages only.
+    // App mode caps a UWP app at about a gigabyte on the Xbox; Game mode gives it 5120 MiB. The
+    // emulated Switch alone needs more than App mode allows, so say how to switch before a game fails.
+    bool app_mode = false;
+    if (DetectConsoleModel() != ConsoleModel::Pc) {
+        try {
+            app_mode = winrt::Windows::System::MemoryManager::AppMemoryUsageLimit() < (3ull << 30);
+        } catch (...) {
+        }
+    }
     auto keyboard_notice_until = std::chrono::steady_clock::time_point{};
     auto controller_notice_until = std::chrono::steady_clock::time_point{};
     auto system_notice_until = std::chrono::steady_clock::time_point{};
@@ -2262,7 +2271,7 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
             }
             canvas->Draw({scan, selected, loading, settings, setting_row, options, notice, panel,
                           configuration, system_page, options_view, missing_content, rail, tab, filter,
-                          &shelf, shelf_focus, filter_focus, battery});
+                          &shelf, shelf_focus, filter_focus, battery, app_mode});
             dirty = false;
         }
         // A drawn frame already waited for the display in Present(1); sleeping after it too made

@@ -189,6 +189,7 @@ public:
         if (!management && !configuration.network_screen && !configuration.confirm_import && !view.system.updates_open) {
             DrawHeader(view, now);
             DrawFooter(view);
+            if (view.app_mode) DrawAppModeWarning();
         }
         // On the Settings tab the controller's rows are its page; only the device list floats.
         if (view.controller_panel && view.tab != LibraryTab::Settings) DrawControllerPanel(view);
@@ -480,6 +481,16 @@ private:
                  label, 1, TextAlign::Center);
             AddHit(places[i].x, y, places[i].width, height, hit, i);
         }
+    }
+    /// Under the header while the app runs in App mode: how to give it Game mode's memory.
+    void DrawAppModeWarning() {
+        const auto text = Tr(T::AppModeWarning);
+        const float width = std::min(MeasureType(text, TypeRole::LabelLarge) + 40, 1280.0f - 2 * LibraryLayout::Margin);
+        const float x = (1280 - width) / 2, y = 84;
+        Round(x, y + 3, width, 30, 15, Palette::Shadow, 0.08f);
+        Round(x, y, width, 30, 15, Palette::Surface);
+        Round(x + 14, y + 12, 6, 6, 3, Palette::Brand);
+        Type(text, TypeRole::LabelLarge, x + 28, y + 5, width - 40, Palette::Warning);
     }
     /// "Dyer", the red dot that ends it, then "Play" in a lighter voice; centred on `middle`.
     void DrawWordmark(float x, float middle) {

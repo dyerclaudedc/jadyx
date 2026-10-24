@@ -63,6 +63,8 @@ struct LibraryView {
     std::size_t shelf_focus{};               ///< In `shelf`; its size is the import tile.
     bool filter_focus{};                     ///< The Library tab's focus is on the filter bar.
     ControllerBattery battery{};
+    /// On an Xbox with the app in App mode (about 1 GB): games cannot run, the header says so.
+    bool app_mode{};
 };
 /// What the pointer can press on the library screen.
 enum class LibraryHit : unsigned {

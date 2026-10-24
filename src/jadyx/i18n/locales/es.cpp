@@ -655,6 +655,7 @@ const Catalog SpanishCatalog = MakeCatalog({
     {Text::GameProfileHint, L"Modo de rendimiento de este juego"},
     {Text::GameProfileBody, L"Modo de rendimiento de este juego: {0}. Portátil dibuja a 720p, más ligero para la GPU y la memoria; TV dibuja a 1080p. Se aplica la próxima vez que inicies el juego."},
     {Text::GameProfileFollow, L"Como en Ajustes · {0}"},
+    {Text::AppModeWarning, L"El modo App limita Dyer Play a 1 GB y los juegos no arrancan: en Dev Home elige View details → App type → Game."},
 
     // Tabs, sections and filters
     {Text::TabHome, L"Inicio"},

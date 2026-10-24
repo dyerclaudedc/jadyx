@@ -605,6 +605,7 @@ enum class Text : std::uint16_t {
     GameProfileHint,
     GameProfileBody,
     GameProfileFollow,
+    AppModeWarning,
 
     // Tabs, sections and filters
     TabHome,
