@@ -1782,9 +1782,9 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
                 if (option == GameOption::Profile && std::exchange(game_options.cycle_profile, false)) {
                     // Follow Settings, TV, Handheld: the next boot of the game reads it.
                     const auto& game = scan.entries[game_options.game];
-                    const auto next = NextGameConsoleMode(LoadGameConsoleMode(game.launch_path));
-                    if (!SaveGameConsoleMode(game.launch_path, next)) notify(T::SystemSaveFailed);
-                    profile_mode = next;
+                    const auto next_mode = NextGameConsoleMode(LoadGameConsoleMode(game.launch_path));
+                    if (!SaveGameConsoleMode(game.launch_path, next_mode)) notify(T::SystemSaveFailed);
+                    profile_mode = next_mode;
                     dirty = true;
                 }
                 if (option == GameOption::Remove && (game_options.confirm_discard || game_options.discard)) {
