@@ -16,6 +16,7 @@
 #include <winrt/Windows.Storage.h>
 #include <winrt/Windows.Foundation.h>
 #include "common/fs/path_util.h"
+#include "common/logging.h"
 #include "common/scope_exit.h"
 #include "core/crypto/key_manager.h"
 #include "core/file_sys/content_archive.h"
@@ -103,7 +104,12 @@ struct ZipSource {
 };
 FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress progress,std::stop_token stop) {
     FirmwareInfo info;bool system=false,mii=false,update=false;unsigned count{};
-    std::set<u64> outside,listed;
+    std::set<u64> listed;
+    // Each title's meta lists its contents by content ID (the NCA's file name). A content whose own
+    // program ID lies outside the system range still belongs to the firmware when the meta that
+    // lists it is a system title; newer firmware (20.x and later) ships such data contents.
+    std::vector<std::pair<u64,std::string>> outside_contents;
+    std::map<std::string,u64> owner;
     if(!fs::exists(folder)){Require(!strict,"firmware_incomplete");return info;}
     FileSys::RealVfsFilesystem vfs;
     for(const auto& file:fs::directory_iterator{folder}) {
@@ -116,9 +122,25 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
         if(R_FAILED(header.Initialize(raw,FileSys::GetCryptoConfiguration(),FileSys::GetNcaCompressionConfiguration()))){Require(!strict,"firmware_keys");continue;}
         FileSys::NCA nca{raw};
         if(nca.GetStatus()!=Loader::ResultStatus::Success){Require(!strict,"firmware_keys");continue;}
-        // Firmware also ships a few system titles outside 0x010000000000xxxx (e.g. 01008BB00013C000);
-        // those are allowed only when the SystemUpdate meta lists them.
-        if((nca.GetTitleId()>>16)!=(0x0100000000000000ULL>>16))outside.insert(nca.GetTitleId());
+        // Firmware also ships contents outside 0x010000000000xxxx (e.g. 01008BB00013C000); they are
+        // allowed when the SystemUpdate meta lists their title or a system title's meta lists them.
+        if((nca.GetTitleId()>>16)!=(0x0100000000000000ULL>>16)) {
+            auto name=Lower(Utf8(file.path().stem()));
+            // Meta contents are named "<id>.cnmt.nca".
+            if(name.ends_with(".cnmt"))name.resize(name.size()-5);
+            outside_contents.emplace_back(nca.GetTitleId(),std::move(name));
+        }
+        if(nca.GetType()==FileSys::NCAContentType::Meta&&!nca.GetSubdirectories().empty())
+            for(const auto& entry:nca.GetSubdirectories()[0]->GetFiles()) {
+                if(Lower(Utf8(fs::path{entry->GetName()}.extension()))!=".cnmt")continue;
+                const FileSys::CNMT meta{entry};
+                constexpr char hex[]="0123456789abcdef";
+                for(const auto& record:meta.GetContentRecords()) {
+                    std::string id;
+                    for(const auto byte:record.nca_id){id+=hex[byte>>4];id+=hex[byte&15];}
+                    owner.emplace(id,meta.GetTitleID());
+                }
+            }
         if(nca.GetTitleId()==0x0100000000000816ULL&&nca.GetType()==FileSys::NCAContentType::Meta&&
            !nca.GetSubdirectories().empty())
             if(const auto cnmt=nca.GetSubdirectories()[0]->GetFile("SystemUpdate_0100000000000816.cnmt")) {
@@ -141,7 +163,16 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
         mii|=nca.GetTitleId()==0x0100000000001009ULL&&nca.GetType()==FileSys::NCAContentType::Program;
         if(progress)progress(count,0);
     }
-    for(const auto title:outside)Require(update&&listed.contains(title),"firmware_game");
+    const auto system_title=[&](u64 title) {
+        return (title>>16)==(0x0100000000000000ULL>>16)||listed.contains(title);
+    };
+    for(const auto& [title,name]:outside_contents) {
+        if(update&&listed.contains(title))continue;
+        const auto found=owner.find(name);
+        if(update&&found!=owner.end()&&system_title(found->second))continue;
+        LOG_WARNING(Frontend,"Firmware import: title {:016X} ({}) is not part of the system update",title,name);
+        Require(false,"firmware_game");
+    }
     Require(!strict||(system&&mii),"firmware_incomplete");return info;
 }
 }
