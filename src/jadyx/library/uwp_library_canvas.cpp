@@ -22,6 +22,7 @@
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/Windows.Storage.h>
 #include "common/logging.h"
+#include "jadyx/app/console_model.h"
 #include "jadyx/cheats/cheats_view.h"
 #include "jadyx/library/game_library.h"
 #include "jadyx/library/play_history.h"
@@ -137,9 +138,12 @@ public:
         hits.clear();
         target->BeginDraw();
         target->Clear(D2D1::ColorF(Palette::Canvas));
-        if (!management && !configuration.network_screen) DrawBackdrop(now);
+        // On the paper theme the art lives on the hero's card instead of behind the screen, and
+        // nothing drifts: the library only redraws when something changes.
+        const bool backdrop = Theme::dark && !management && !configuration.network_screen;
+        if (backdrop) DrawBackdrop(now);
         // The backdrop moves on its own while it shows (AmbientDue).
-        ambient = !management && !configuration.network_screen && !backdrop_now.empty();
+        ambient = backdrop && !backdrop_now.empty();
         last_frame = now;
         if(configuration.confirm_import){
             rows_shown=false;
@@ -437,9 +441,22 @@ private:
             cursor += width;
         }
         const float total = cursor + SegmentInset - x;
-        Round(x, y, total, height, height / 2, Palette::Graphite, 0.78f);
-        Outline(x + 0.5f, y + 0.5f, total - 1, height - 1, height / 2 - 0.5f, Palette::Hairline, focused ? 0.85f : 0.12f,
-                focused ? 1.5f : 1.0f);
+        const bool paper = !Theme::dark;
+        if (paper) {
+            // The screens' glass capsule: translucent white on a warm shadow, a white capsule
+            // for the active segment, the red ring around it all when it has the focus.
+            Round(x, y + 4, total, height, height / 2, Palette::Shadow, 0.05f);
+            Round(x, y, total, height, height / 2, Palette::Surface, 0.6f);
+            Outline(x + 0.5f, y + 0.5f, total - 1, height - 1, height / 2 - 0.5f, Palette::Surface, 0.9f);
+            if (focused) {
+                Outline(x - 1.5f, y - 1.5f, total + 3, height + 3, height / 2 + 1.5f, Palette::Canvas, 1, 3);
+                Outline(x - 4.5f, y - 4.5f, total + 9, height + 9, height / 2 + 4.5f, Palette::Focus, 1, 3);
+            }
+        } else {
+            Round(x, y, total, height, height / 2, Palette::Graphite, 0.78f);
+            Outline(x + 0.5f, y + 0.5f, total - 1, height - 1, height / 2 - 0.5f, Palette::Hairline,
+                    focused ? 0.85f : 0.12f, focused ? 1.5f : 1.0f);
+        }
         // The capsule between the two segments it is passing.
         const std::size_t from = std::min(static_cast<std::size_t>(std::max(slide, 0.0f)), places.size() - 1);
         const std::size_t to = std::min(from + 1, places.size() - 1);
@@ -447,19 +464,36 @@ private:
         const float capsule_x = places[from].x + (places[to].x - places[from].x) * t;
         const float capsule_w = places[from].width + (places[to].width - places[from].width) * t;
         constexpr float inset = SegmentInset;
-        Round(capsule_x, y + inset, capsule_w, height - 2 * inset, (height - 2 * inset) / 2, Palette::Accent);
+        const float capsule_h = height - 2 * inset;
+        if (paper) {
+            Round(capsule_x, y + inset + 3, capsule_w, capsule_h, capsule_h / 2, Palette::Shadow, 0.07f);
+            Round(capsule_x, y + inset, capsule_w, capsule_h, capsule_h / 2, Palette::Surface);
+        } else {
+            Round(capsule_x, y + inset, capsule_w, capsule_h, capsule_h / 2, Palette::Accent);
+        }
         for (std::size_t i = 0; i < labels.size(); ++i) {
+            const unsigned label = i == active ? (paper ? static_cast<unsigned>(Palette::Text)
+                                                        : static_cast<unsigned>(Palette::OnAccent))
+                                               : (paper ? static_cast<unsigned>(Palette::TextHint)
+                                                        : static_cast<unsigned>(Palette::TextSecondary));
             Type(labels[i], TypeRole::LabelLarge, places[i].x, y + (height - 20) / 2, places[i].width,
-                 i == active ? Palette::OnAccent : Palette::TextSecondary, 1, TextAlign::Center);
+                 label, 1, TextAlign::Center);
             AddHit(places[i].x, y, places[i].width, height, hit, i);
         }
     }
-    /// The wordmark; the tabs in the middle; the controller, the time and the user at the right.
+    /// "Dyer", the red dot that ends it, then "Play" in a lighter voice; centred on `middle`.
+    void DrawWordmark(float x, float middle) {
+        constexpr float size = 18;
+        const float dyer = MeasureText(L"Dyer", size, true);
+        Text(L"Dyer", x, middle - 12, size, Palette::Text, dyer + 4, 26, true);
+        const float dot = x + dyer + 2;
+        Round(dot, middle + 2, 5.5f, 5.5f, 2.75f, Palette::Brand);
+        Text(L"Play", dot + 11, middle - 12, size, Palette::TextHint, 80, 26);
+    }
+    /// The wordmark; the tabs in the middle; the controller, the machine and the time at the right.
     void DrawHeader(const LibraryView& view, Tween::Clock::time_point now) {
         using namespace LibraryLayout;
-        Type(L"J A D Y X", TypeRole::HeadlineSmall, Margin, HeaderTop + 6, 200, Palette::Text);
-        const float mark = Margin + MeasureType(L"J A D Y X", TypeRole::HeadlineSmall) + 14;
-        Type(view.panel.xbox ? L"SERIES X|S" : L"PC", TypeRole::Caps, mark, HeaderTop + 13, 160, Palette::TextSecondary);
+        DrawWordmark(Margin, HeaderTop + HeaderButtonHeight / 2);
         // The tabs, with the bumpers that switch them at their ends.
         const std::vector<std::wstring_view> tabs{Tr(T::TabHome), Tr(T::TabLibrary), Tr(T::TabSettings)};
         const auto active = static_cast<std::size_t>(view.tab);
@@ -479,26 +513,20 @@ private:
             Badge(previous, left - 10 - BadgeWidth(previous) / 2, middle, Palette::TextSecondary);
             Badge(next, left + width + 10 + BadgeWidth(next) / 2, middle, Palette::TextSecondary);
         }
-        // Right to left: the user, a hairline, the time and the controller (pressing it opens its panel).
-        const std::wstring_view name = view.system.settings.user_name.empty()
-                                           ? DefaultUserName
-                                           : std::wstring_view{view.system.settings.user_name};
-        const float name_width = std::min(MeasureType(name, TypeRole::LabelLarge) + 2, 150.0f);
-        float right = 1280 - Margin - name_width;
-        Type(name, TypeRole::LabelLarge, right, middle - 10, name_width, Palette::Text);
-        right -= 10 + 30;
-        Round(right, middle - 15, 30, 30, 15, Palette::Graphite);
-        Outline(right + 0.5f, middle - 14.5f, 29, 29, 14.5f, Palette::Hairline, 0.2f);
-        Type(Upper(name.substr(0, 1)), TypeRole::LabelLarge, right, middle - 10, 30, Palette::Text, 1,
-             TextAlign::Center);
-        right -= 16;
-        Round(right, middle - 11, 1, 22, 0, Palette::Hairline, 0.18f);
+        // Right to left: the time, the renderer and the machine, then the controller (pressing it
+        // opens its panel).
+        float right = 1280 - Margin;
         wchar_t clock[32]{};
         if (GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, TIME_NOSECONDS, nullptr, nullptr, clock, 32) > 0) {
-            const float clock_width = MeasureType(clock, TypeRole::LabelLarge) + 2;
-            right -= 16 + clock_width;
-            Type(clock, TypeRole::LabelLarge, right, middle - 10, clock_width, Palette::Text);
+            const float clock_width = MeasureType(clock, TypeRole::BodyLarge) + 2;
+            right -= clock_width;
+            Type(clock, TypeRole::BodyLarge, right, middle - 13, clock_width, Palette::Text);
         }
+        const std::string_view model_name = ConsoleModelName(DetectConsoleModel()); // ASCII
+        const std::wstring machine = L"DX12 · " + Upper(std::wstring(model_name.begin(), model_name.end()));
+        const float machine_width = MeasureType(machine, TypeRole::Caps) + 2;
+        right -= 16 + machine_width;
+        Type(machine, TypeRole::Caps, right, middle - 8, machine_width, Palette::TextHint);
         const float status_right = right - 16;
         if (view.battery.known) {
             right -= 16 + BatteryWidth;
@@ -630,7 +658,8 @@ private:
     float TileAmount(TileKey tile, Tween::Clock::time_point now) const {
         return tile == focused_tile ? focus_in.Value(now) : tile == left_tile ? focus_out.Value(now) : 0.0f;
     }
-    /// The focused game, large: who makes it, its title, what is known about it, and its actions.
+    /// The focused game, large: when it was played, its title, what is known about it and its
+    /// actions on the left; its art on a card at the right (the Dyer Play library screen).
     void DrawHero(const LibraryView& view, const LibraryEntry& game, Tween::Clock::time_point now) {
         using namespace LibraryLayout;
         if (game.launch_path != hero_path) {
@@ -640,44 +669,95 @@ private:
         }
         const float shown = hero.Value(now);
         const float lift = (1 - shown) * 10;
-        constexpr float width = 860;
+        constexpr float width = HeroTextWidth;
         const unsigned lines = MeasureType(game.name, TypeRole::Hero) > width ? 2 : 1;
-        const float title = 304 - 64.0f * lines + lift;
-        std::wstring kicker{L"NINTENDO SWITCH"};
-        if (!game.developer.empty()) kicker += L"  ·  " + Upper(game.developer);
-        Type(kicker, TypeRole::Caps, Margin, title - 24, width, Palette::TextSecondary, shown);
-        Type(game.name, TypeRole::Hero, Margin, title, width, Palette::Text, shown, TextAlign::Leading, lines);
-        // Only what the game and the play history say; a chip that would not fit is left out.
+        // The block is centred in the hero's band: kicker, title, meta line, chips, actions.
+        constexpr float kicker_h = 16, title_line = 64, meta_h = 22, chips_h = 26;
+        const float block = kicker_h + 8 + title_line * lines + 10 + meta_h + 14 + chips_h + 24 + PillHeight;
+        float y = HeroTop + (HeroHeight - block) / 2 + lift;
+        const std::wstring kicker =
+            game.last_played > 0
+                ? Upper(I18n::Format(T::LastPlayed, {FormatLastPlayed(game.last_played, UnixNow(), LocalUtcOffset())}))
+                : std::wstring{L"NINTENDO SWITCH"};
+        Type(kicker, TypeRole::Caps, Margin, y, width, Palette::TextHint, shown);
+        y += kicker_h + 8;
+        Type(game.name, TypeRole::Hero, Margin, y, width, Palette::Text, shown, TextAlign::Leading, lines);
+        y += title_line * lines + 10;
+        // Who makes it, its version and the time played: only what the game and the history say.
+        std::wstring meta = game.developer;
+        const auto add = [&](std::wstring part) {
+            if (part.empty()) return;
+            if (!meta.empty()) meta += L" · ";
+            meta += part;
+        };
+        if (!game.display_version.empty()) add(L"v" + game.display_version);
+        if (view.system.settings.track_play_time && game.play_seconds > 0) add(FormatPlayTime(game.play_seconds));
+        Type(meta, TypeRole::BodyLarge, Margin, y, width, Palette::TextHint, shown);
+        y += meta_h + 14;
+        // White capsules; one that would not fit is left out.
         float x = Margin;
-        const float y = 314 + lift;
-        const auto chip = [&](std::wstring_view text, unsigned color = Palette::TextHint) {
-            if (x + MeasureType(text, TypeRole::Label) + 24 > 1280 - Margin) return;
+        const auto chip = [&](std::wstring_view text, unsigned color = Palette::Text) {
+            if (x + MeasureType(text, TypeRole::Label) + 24 > Margin + width) return;
             x += Chip(text, x, y, color, shown) + 8;
         };
         if (!view.configuration.status.keys_ready) chip(Tr(T::ImportKeysFirst), Palette::Warning);
-        if (!game.display_version.empty()) chip(L"v" + game.display_version);
-        if (game.last_played > 0) {
-            if (view.system.settings.track_play_time && game.play_seconds > 0)
-                chip(FormatPlayTime(game.play_seconds));
-            chip(I18n::Format(T::LastPlayed, {FormatLastPlayed(game.last_played, UnixNow(), LocalUtcOffset())}));
-        }
         const auto extension = game.relative_path.extension().wstring();
         if (extension.size() > 1) chip(Upper(std::wstring_view{extension}.substr(1)));
-        if (!game.source_name.empty()) chip(game.source_name);
+        if (!game.source_name.empty()) chip(Upper(game.source_name));
         if (!game.pulse_saved.empty())
-            chip(I18n::Format(T::PulseBadge, {game.pulse_saved}),
+            chip(Upper(I18n::Format(T::PulseBadge, {game.pulse_saved})),
                  game.pulse_current ? Palette::Text : Palette::TextSecondary);
+        y += chips_h + 24;
         const auto play = PromptKey(Navigation::Play);
         const auto menu = PromptKey(Navigation::Options);
-        const float play_width = PillButton(Tr(T::Play), play.letters, play.color, Margin, PillTop, true, PillHeight);
-        AddHit(Margin, PillTop, play_width, PillHeight, LibraryHit::Play);
-        const float options_x = Margin + play_width + 14;
-        const float options_width = PillButton(Tr(T::Options), menu.letters, menu.color, options_x, PillTop,
+        const float play_width = PillButton(Tr(T::Play), play.letters, play.color, Margin, y, true, PillHeight);
+        AddHit(Margin, y, play_width, PillHeight, LibraryHit::Play);
+        const float options_x = Margin + play_width + 10;
+        const float options_width = PillButton(Tr(T::Options), menu.letters, menu.color, options_x, y,
                                                false, PillHeight);
-        AddHit(options_x, PillTop, options_width, PillHeight, LibraryHit::Options);
-        if (!view.notice.empty()) {
-            const float notice_x = options_x + options_width + 24;
-            Type(view.notice, TypeRole::Body, notice_x, PillTop + 11, 1280 - Margin - notice_x, Palette::Warning);
+        AddHit(options_x, y, options_width, PillHeight, LibraryHit::Options);
+        DrawHeroArt(game, shown);
+        if (!view.notice.empty())
+            Type(view.notice, TypeRole::Body, ArtLeft, HeroTop + HeroHeight + 6, ArtWidth, Palette::Warning, 1,
+                 TextAlign::Trailing);
+    }
+    /// The hero's card: the cover blurred across it, the cover itself in the middle, and the
+    /// Pulse session (or the version) on a capsule in its corner.
+    void DrawHeroArt(const LibraryEntry& game, float alpha) {
+        using namespace LibraryLayout;
+        const float x = ArtLeft, y = HeroTop, w = ArtWidth, h = HeroHeight;
+        Round(x, y + 14, w, h, ArtRadius, Palette::Shadow, 0.08f * alpha);
+        Round(x, y + 6, w, h, ArtRadius, Palette::Shadow, 0.06f * alpha);
+        if (auto* art = BackdropOf(game)) {
+            if (!art_mask) {
+                ComPtr<ID2D1Factory> factory;
+                target->GetFactory(&factory);
+                winrt::check_hresult(factory->CreateRoundedRectangleGeometry(
+                    D2D1::RoundedRect(D2D1::RectF(0, 0, ArtWidth, HeroHeight), ArtRadius, ArtRadius), &art_mask));
+            }
+            D2D1_LAYER_PARAMETERS1 layer{};
+            layer.contentBounds = D2D1::RectF(x, y, x + w, y + h);
+            layer.geometricMask = art_mask.Get();
+            layer.maskAntialiasMode = D2D1_ANTIALIAS_MODE_PER_PRIMITIVE;
+            layer.maskTransform = D2D1::Matrix3x2F::Translation(x, y);
+            layer.opacity = alpha;
+            target->PushLayer(&layer, nullptr);
+            target->DrawBitmap(art, D2D1::RectF(x, y, x + w, y + h), 1, D2D1_INTERPOLATION_MODE_LINEAR);
+            target->PopLayer();
+        } else {
+            Round(x, y, w, h, ArtRadius, Palette::Graphite, alpha);
+        }
+        constexpr float size = 184;
+        const float cover_x = x + (w - size) / 2, cover_y = y + (h - size) / 2;
+        Round(cover_x, cover_y + 10, size, size, 14, Palette::Shadow, 0.18f * alpha);
+        Cover(game, cover_x, cover_y, size, alpha);
+        std::wstring corner;
+        if (!game.pulse_saved.empty()) corner = Upper(I18n::Format(T::PulseBadge, {game.pulse_saved}));
+        else if (!game.display_version.empty()) corner = L"V" + game.display_version;
+        if (!corner.empty()) {
+            const float corner_w = MeasureType(corner, TypeRole::Label) + 24;
+            Round(x + 18, y + h - 18 - 26, corner_w, 26, 13, Palette::Surface, 0.8f * alpha);
+            Type(corner, TypeRole::Label, x + 30, y + h - 18 - 21, corner_w - 22, Palette::Text, alpha);
         }
     }
     /// The rows of covers: the focused one where the hero ends, the rows above fading under it.
@@ -708,13 +788,16 @@ private:
             const std::size_t first = in_rail ? 0 : (row - (rail ? 1 : 0)) * Columns;
             const std::size_t end = in_rail ? rail : std::min(count, first + Columns);
             if (in_rail || first == 0) {
-                Type(Tr(in_rail ? T::RecentAndPinned : T::FullCollection), TypeRole::HeadlineSmall, Margin,
-                     top - HeadingHeight, 700, Palette::Text, alpha);
-                const auto kicker = in_rail ? Upper(TitlesCount(rail))
-                                  : focus.rail ? TitlesCount(count)
-                                               : std::to_wstring(focus.selected + 1) + L" / " + std::to_wstring(count);
-                Type(kicker, in_rail ? TypeRole::Caps : TypeRole::Label, 1280 - Margin - 240,
-                     top - HeadingHeight + 8, 240, Palette::TextSecondary, alpha, TextAlign::Trailing);
+                // "All games · 12", as on the screen: the count follows the heading in a quieter ink.
+                const auto heading = Tr(in_rail ? T::RecentAndPinned : T::FullCollection);
+                const float heading_w = MeasureType(heading, TypeRole::BodyLarge) + 2;
+                Type(heading, TypeRole::BodyLarge, Margin, top - HeadingHeight + 6, heading_w, Palette::Text, alpha);
+                Type(L"· " + std::to_wstring(in_rail ? rail : count), TypeRole::BodyLarge, Margin + heading_w + 6,
+                     top - HeadingHeight + 6, 120, Palette::TextSecondary, alpha);
+                if (!in_rail && !focus.rail)
+                    Type(std::to_wstring(focus.selected + 1) + L" / " + std::to_wstring(count), TypeRole::Label,
+                         1280 - Margin - 240, top - HeadingHeight + 10, 240, Palette::TextSecondary, alpha,
+                         TextAlign::Trailing);
             }
             for (std::size_t i = first; i < end; ++i) {
                 const float x = TileLeft(i - first);
@@ -734,7 +817,7 @@ private:
     }
     /// Rows settle at RowTop; above it they fade out before reaching the hero's actions.
     static float RowAlpha(float top) {
-        return std::clamp((top - 330) / 144, 0.0f, 1.0f);
+        return std::clamp((top - (LibraryLayout::RowTop - 144)) / 144, 0.0f, 1.0f);
     }
     /// A cover, its title and its meta line; `amount` (0..1) of the way into focus: larger,
     /// lifted, ringed and with a brighter title.
@@ -872,23 +955,30 @@ private:
             }
             Type(notice, TypeRole::Label, 1280 - Margin - 600, y + 8, 600, color, 1, TextAlign::Trailing);
             return;
-        } else {
-            const bool shelf = view.tab == LibraryTab::Library;
-            const bool import = shelf && view.shelf && view.shelf_focus >= view.shelf->size();
-            if (!(shelf && view.filter_focus)) {
-                // On Home the hero's pills already show Play and Options with their buttons.
-                if (import) x += ControlPrompt(Navigation::Play, Tr(T::Import), x, y);
-                else if (game && shelf) x += ControlPrompt(Navigation::Play, Tr(T::Play), x, y);
-                if (game && !import) {
-                    if (shelf) x += ControlPrompt(Navigation::Options, Tr(T::Options), x, y);
-                    x += ControlPrompt(Navigation::Pin, Tr(entries[view.selected].pinned ? T::Unpin : T::Pin), x, y);
-                }
-            }
-            x += ControlPrompt(Navigation::Rescan, Tr(T::Refresh), x, y);
-            ControlPrompt(Navigation::Back, Tr(shelf ? T::Back : T::Exit), x, y);
         }
-        Type(version_text, TypeRole::Label, 1280 - Margin - 160, y + 8, 160, Palette::TextSecondary, 0.7f,
-             TextAlign::Trailing);
+        // The library's prompts sit at the right, as on the screen; the app, its version and the
+        // machine at the left.
+        const bool shelf = view.tab == LibraryTab::Library;
+        const bool import = shelf && view.shelf && view.shelf_focus >= view.shelf->size();
+        std::vector<std::pair<Navigation, std::wstring_view>> prompts;
+        if (!(shelf && view.filter_focus)) {
+            // On Home the hero's pills already show Play and Options with their buttons.
+            if (import) prompts.emplace_back(Navigation::Play, Tr(T::Import));
+            else if (game && shelf) prompts.emplace_back(Navigation::Play, Tr(T::Play));
+            if (game && !import) {
+                if (shelf) prompts.emplace_back(Navigation::Options, Tr(T::Options));
+                prompts.emplace_back(Navigation::Pin, Tr(entries[view.selected].pinned ? T::Unpin : T::Pin));
+            }
+        }
+        prompts.emplace_back(Navigation::Rescan, Tr(T::Refresh));
+        prompts.emplace_back(Navigation::Back, Tr(shelf ? T::Back : T::Exit));
+        float total = 0;
+        for (const auto& [action, label] : prompts) total += PromptWidth(action, label);
+        x = 1280 - Margin - total + 28; // The last prompt's trailing gap goes past the margin.
+        for (const auto& [action, label] : prompts) x += ControlPrompt(action, label, x, y);
+        const std::string_view model_name = ConsoleModelName(DetectConsoleModel()); // ASCII
+        Type(Upper(L"Dyer Play " + version_text + L" · " + std::wstring(model_name.begin(), model_name.end())),
+             TypeRole::Caps, Margin, y + 9, 1280 - 2 * Margin - total - 24, Palette::TextSecondary);
     }
     void DrawControllerPanel(const LibraryView& view) {
         const auto& options = view.options;
@@ -2146,6 +2236,7 @@ private:
     Tween tab_slide{0, std::chrono::milliseconds{260}, EaseFocus};
     Tween filter_slide{0, std::chrono::milliseconds{260}, EaseFocus};
     ComPtr<ID2D1RoundedRectangleGeometry> cover_mask;
+    ComPtr<ID2D1RoundedRectangleGeometry> art_mask; ///< The hero's art card (DrawHeroArt).
     /// Blurred covers, least recently used first.
     std::vector<std::pair<std::string, ComPtr<ID2D1Bitmap1>>> backdrops;
     std::string backdrop_now, backdrop_before;

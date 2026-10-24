@@ -24,8 +24,16 @@ inline constexpr std::size_t Columns = 7;
 inline constexpr float Tile = 144;
 inline constexpr float Gutter = 24;
 inline constexpr float Stride = Tile + Gutter; ///< 7 tiles and 6 gutters fill 1152 = 1280 - 2x64.
-/// The focused row's covers, on screen.
-inline constexpr float RowTop = 474;
+/// The focused row's covers, on screen: under "All games", as on the Dyer Play library screen
+/// (its 1920x1080 frame is this layout at 1.5x).
+inline constexpr float RowTop = 441;
+/// The hero: its text in the left column, the focused game's art on a card at the right.
+inline constexpr float HeroTop = 100;
+inline constexpr float HeroHeight = 280;
+inline constexpr float HeroTextWidth = 600;
+inline constexpr float ArtWidth = 509;
+inline constexpr float ArtLeft = 1280 - Margin - ArtWidth;
+inline constexpr float ArtRadius = 21;
 /// One row: the cover, its title and meta line, and the gap to the next.
 inline constexpr float RowHeight = 216;
 /// A section title above a section's first row.
