@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import zipfile, pathlib, warnings
 root=pathlib.Path('build-uwp/test-results/updater/packages');root.mkdir(parents=True,exist_ok=True)
-valid='<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"><Identity Name="Jadyx" Publisher="CN=JadyxDev" Version="0.3.6.0" ProcessorArchitecture="x64" /></Package>'
+valid='<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"><Identity Name="DyerPlay" Publisher="CN=DyerPlay" Version="0.3.6.0" ProcessorArchitecture="x64" /></Package>'
 fixtures={
  'valid':valid,'valid-bom':'﻿<?xml version="1.0" encoding="utf-8"?>\r\n'+valid,
  'wrong-version':valid.replace('0.3.6.0','0.3.7.0'),
- 'wrong-name':valid.replace('Name="Jadyx"','Name="Other"'),
- 'wrong-publisher':valid.replace('JadyxDev','Other'),
+ 'wrong-name':valid.replace('Name="DyerPlay"','Name="Other"'),
+ 'wrong-publisher':valid.replace('DyerPlay','Other'),
  'wrong-architecture':valid.replace('x64','arm64'),
  'wrong-namespace':valid.replace('foundation/windows10','foundation/other'),
  'comment-only':valid.replace('<Identity','<!-- <Identity').replace('/>','/> -->'),
- 'duplicate-attribute':valid.replace('Name="Jadyx"','Name="Jadyx" Name="Other"'),
+ 'duplicate-attribute':valid.replace('Name="DyerPlay"','Name="DyerPlay" Name="Other"'),
  'doctype':'<!DOCTYPE Package [<!ENTITY test SYSTEM "file:///C:/must-not-open">]>'+valid,
  'empty-signature':valid,'missing-signature':valid,'duplicate-manifest':valid,
  'missing-manifest':None,'truncated':valid,

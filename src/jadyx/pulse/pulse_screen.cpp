@@ -114,6 +114,7 @@ struct Painter : UiPainter {
 
     D3D12::MenuImage Draw(const View& view, PulseScreen::Kind kind, std::wstring_view game,
                           std::pair<u32, u32> screen) {
+        const Theme::DarkScope dark; // the session screen sits over the game
         using L = Layout;
         const auto [screen_width, screen_height] = screen;
         if (screen_width == 0 || screen_height == 0) return {};

@@ -22,39 +22,71 @@
 
 namespace Jadyx {
 
-/// The frontend's colors (0xRRGGBB): the monochrome "living room cinema" palette. Colour on
-/// screen comes from game art; the chrome stays neutral.
+/// Which of the two Dyer Play themes the calling thread draws with. The library and settings are
+/// light (warm paper, ink and one red accent); what is drawn over a running game (the in-game
+/// menu, its keyboard, Pulse) is dark glass, so the game stays the brightest thing on screen.
+namespace Theme {
+inline thread_local bool dark = false;
+
+/// Draws with the dark theme until it goes out of scope (the previous theme comes back).
+class DarkScope {
+public:
+    DarkScope() noexcept : previous{dark} { dark = true; }
+    ~DarkScope() { dark = previous; }
+    DarkScope(const DarkScope&) = delete;
+    DarkScope& operator=(const DarkScope&) = delete;
+
+private:
+    bool previous;
+};
+} // namespace Theme
+
+/// The frontend's colors (0xRRGGBB), taken from the Dyer Play screens. Each entry has a light and
+/// a dark value and reads as the one of the calling thread's theme, so every surface keeps using
+/// the same names.
 namespace Palette {
-inline constexpr unsigned Canvas = 0x08090b;   ///< The base layer, behind everything.
-inline constexpr unsigned Surface = 0x111315;  ///< Cards, panels and dialogs.
-inline constexpr unsigned Graphite = 0x1c1f23; ///< Hairlines, dividers, tracks, badges.
-inline constexpr unsigned Backdrop = Canvas;
-inline constexpr unsigned Panel = Surface;
-inline constexpr unsigned Row = 0x16181b;
-/// The focused row: white at 8% over Surface.
-inline constexpr unsigned RowActive = 0x26282b;
-/// Focus and "on": the focal white, with Canvas on top of it.
-inline constexpr unsigned Accent = 0xf5f5f7;
-inline constexpr unsigned OnAccent = 0x08090b;
-inline constexpr unsigned Text = 0xf5f5f7;
-inline constexpr unsigned TextSecondary = 0x92959a;
-inline constexpr unsigned TextHint = 0xb4b7bb;
-inline constexpr unsigned Warning = 0xf0c27a;
-inline constexpr unsigned Track = Graphite;
+struct Color {
+    unsigned light;
+    unsigned dark;
+    operator unsigned() const noexcept { return Theme::dark ? dark : light; }
+};
+inline constexpr Color Canvas{0xf5f2ed, 0x14110f};   ///< The base layer, behind everything.
+inline constexpr Color Surface{0xffffff, 0x1f1b19};  ///< Cards, panels and dialogs.
+inline constexpr Color Graphite{0xe4dfd8, 0x2e2926}; ///< Dividers, tracks, badges.
+inline constexpr Color Backdrop = Canvas;
+inline constexpr Color Panel = Surface;
+inline constexpr Color Row{0xefebe5, 0x26211e};
+/// The focused row: white on paper, a lighter ink over a game.
+inline constexpr Color RowActive{0xffffff, 0x3a3431};
+/// "On" and primary actions: ink on paper (cream over a game), with OnAccent on top of it.
+inline constexpr Color Accent{0x1f1b19, 0xf5f2ed};
+inline constexpr Color OnAccent{0xf5f2ed, 0x1f1b19};
+inline constexpr Color Text{0x1f1b19, 0xf5f2ed};
+inline constexpr Color TextSecondary{0x5e5750, 0xb9b3ac};
+inline constexpr Color TextHint{0x4a443e, 0xd3cec8};
+inline constexpr Color Warning{0xa4521c, 0xf0c27a};
+inline constexpr Color Track = Graphite;
+/// Hairlines and translucent fills drawn at low alpha: ink on paper, white over a game.
+inline constexpr Color Hairline{0x1f1b19, 0xffffff};
+/// The Dyer red: the focus ring, switches that are on, the brand dot.
+inline constexpr Color Brand{0xd9483b, 0xd9483b};
+inline constexpr Color Focus = Brand;
+/// Soft drop shadows: warm brown on paper, black over a game.
+inline constexpr Color Shadow{0x46281a, 0x000000};
 } // namespace Palette
 
 /// The type scale, in 1280x720 layout units (the design's CSS pixels).
 enum class TypeRole : unsigned {
-    Hero,           ///< 56/64 semibold, the focused game's title.
-    HeadlineLarge,  ///< 40/48 semibold, page titles.
-    HeadlineMedium, ///< 28/36 medium.
+    Hero,           ///< 56/64 light, the focused game's title.
+    HeadlineLarge,  ///< 40/48 light, page titles.
+    HeadlineMedium, ///< 28/36 regular.
     HeadlineSmall,  ///< 22/28 medium, section titles.
     BodyLarge,      ///< 18/26.
     Body,           ///< 15/22.
     LabelLarge,     ///< 14/20 medium.
-    Label,          ///< 12/16 medium, tabular figures.
-    Hint,           ///< 13/18 semibold, controller prompts.
-    Caps,           ///< 12/16 semibold, widely tracked: the kicker over a title (pass it upper-cased).
+    Label,          ///< 12/16 IBM Plex Mono: chips, figures, button letters.
+    Hint,           ///< 13/18 medium, controller prompts.
+    Caps,           ///< 12/16 IBM Plex Mono, widely tracked: the kicker over a title (pass it upper-cased).
     Count,
 };
 
@@ -161,13 +193,14 @@ private:
     unsigned layout_frame{};
 };
 
-/// Colors of the Xbox face buttons, for ButtonGlyph.
+/// Colors of the controller button letters, for ButtonGlyph. Dyer Play draws them monochrome, as
+/// the screens do: ink on paper, cream over a game.
 namespace ButtonColor {
-inline constexpr unsigned A = 0x7ccd4f;
-inline constexpr unsigned B = 0xf16b5f;
-inline constexpr unsigned X = 0x68b7ff;
-inline constexpr unsigned Y = 0xf5d76e;
-inline constexpr unsigned Neutral = 0xf5f5f7;
+inline constexpr Palette::Color A = Palette::Text;
+inline constexpr Palette::Color B = Palette::Text;
+inline constexpr Palette::Color X = Palette::Text;
+inline constexpr Palette::Color Y = Palette::Text;
+inline constexpr Palette::Color Neutral = Palette::Text;
 } // namespace ButtonColor
 
 } // namespace Jadyx

@@ -240,8 +240,8 @@ Runtime ProductionRuntime() {
     runtime.download = Http::DownloadVerified;
     if (!server.empty()) {
         const auto local = [server](const std::string& url) {
-            for (const std::string_view prefix : {"https://api.github.com/repos/JulianDr14/jadyx/",
-                                                  "https://github.com/JulianDr14/jadyx/"})
+            for (const std::string_view prefix : {"https://api.github.com/repos/dyerclaudedc/jadyx/",
+                                                  "https://github.com/dyerclaudedc/jadyx/"})
                 if (url.starts_with(prefix))
                     return server + "/" + url.substr(prefix.size());
             return url;
@@ -320,7 +320,7 @@ void Updater::Check(bool force) {
                 const auto cache = p.folder / ("releases-" + std::to_string(page) + ".json");
                 const auto etag_file = std::filesystem::path{cache.wstring() + L".etag"};
                 auto fetched = p.runtime.fetch(
-                    "https://api.github.com/repos/JulianDr14/jadyx/releases?per_page=100&page=" +
+                    "https://api.github.com/repos/dyerclaudedc/jadyx/releases?per_page=100&page=" +
                         std::to_string(page),
                     ReadBounded(etag_file, 8192).value_or(""), stop, 1u << 20);
                 std::string list;
@@ -351,7 +351,7 @@ void Updater::Check(bool force) {
                         (best && *version <= best->version))
                         continue;
                     const auto base =
-                        "https://github.com/JulianDr14/jadyx/releases/download/" + tag + "/";
+                        "https://github.com/dyerclaudedc/jadyx/releases/download/" + tag + "/";
                     bool manifest = false, sig = false;
                     for (const auto& asset : release.at("assets")) {
                         manifest |= asset.value("name", "") == "update.json" &&

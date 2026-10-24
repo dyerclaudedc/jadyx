@@ -22,19 +22,22 @@ struct TypeStyle {
     DWRITE_FONT_WEIGHT weight;
     float tracking; ///< In em.
     bool tabular;
+    bool mono{}; ///< IBM Plex Mono instead of Inter Tight.
 };
 
+// The Dyer Play scale: large titles in Inter Tight Light, tightly tracked; kickers, chips and
+// button letters in IBM Plex Mono, widely tracked.
 constexpr std::array<TypeStyle, static_cast<size_t>(TypeRole::Count)> TypeScale{{
-    {56, 64, DWRITE_FONT_WEIGHT_SEMI_BOLD, -0.025f, false},
-    {40, 48, DWRITE_FONT_WEIGHT_SEMI_BOLD, -0.02f, false},
-    {28, 36, DWRITE_FONT_WEIGHT_MEDIUM, -0.015f, false},
-    {22, 28, DWRITE_FONT_WEIGHT_MEDIUM, -0.01f, false},
-    {18, 26, DWRITE_FONT_WEIGHT_NORMAL, -0.005f, false},
-    {15, 22, DWRITE_FONT_WEIGHT_NORMAL, 0, false},
-    {14, 20, DWRITE_FONT_WEIGHT_MEDIUM, 0.01f, true},
-    {12, 16, DWRITE_FONT_WEIGHT_MEDIUM, 0.02f, true},
-    {13, 18, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0.015f, true},
-    {12, 16, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0.2f, false},
+    {56, 64, DWRITE_FONT_WEIGHT_LIGHT, -0.045f, false},       // Hero
+    {40, 48, DWRITE_FONT_WEIGHT_LIGHT, -0.035f, false},       // HeadlineLarge
+    {28, 36, DWRITE_FONT_WEIGHT_NORMAL, -0.02f, false},       // HeadlineMedium
+    {22, 28, DWRITE_FONT_WEIGHT_MEDIUM, -0.01f, false},       // HeadlineSmall
+    {18, 26, DWRITE_FONT_WEIGHT_NORMAL, -0.005f, false},      // BodyLarge
+    {15, 22, DWRITE_FONT_WEIGHT_NORMAL, 0, false},            // Body
+    {14, 20, DWRITE_FONT_WEIGHT_MEDIUM, 0.01f, true},         // LabelLarge
+    {12, 16, DWRITE_FONT_WEIGHT_NORMAL, 0.04f, true, true},   // Label
+    {13, 18, DWRITE_FONT_WEIGHT_MEDIUM, 0.015f, true},        // Hint
+    {12, 16, DWRITE_FONT_WEIGHT_MEDIUM, 0.1f, false, true},   // Caps
 }};
 
 constexpr unsigned SweepFrames = 120;
@@ -77,8 +80,10 @@ void UiPainter::Outline(float x, float y, float w, float h, float radius, unsign
 }
 
 void UiPainter::Card(float x, float y, float w, float h, float radius) {
+    // Paper cards lift on a warm shadow (the screens' glass panels); dark ones keep a hairline.
+    if (!Theme::dark) Round(x, y + 6, w, h, radius, Palette::Shadow, 0.05f);
     Round(x, y, w, h, radius, Palette::Surface);
-    Outline(x + 0.5f, y + 0.5f, w - 1, h - 1, radius, 0xffffff, 0.08f);
+    Outline(x + 0.5f, y + 0.5f, w - 1, h - 1, radius, Palette::Hairline, Theme::dark ? 0.08f : 0.06f);
 }
 
 IDWriteTextLayout* UiPainter::TypeLayout(std::wstring_view text, TypeRole role, float width,
@@ -96,7 +101,7 @@ IDWriteTextLayout* UiPainter::TypeLayout(std::wstring_view text, TypeRole role, 
     if (cached.layout) return cached.layout.Get();
     auto& format = role_formats[index];
     if (!format) {
-        const auto typeface = InterfaceFonts(write.Get());
+        const auto typeface = style.mono ? MonoFonts(write.Get()) : InterfaceFonts(write.Get());
         winrt::check_hresult(write->CreateTextFormat(typeface.family, typeface.collection,
             style.weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, style.size,
             format_locale.c_str(), &format));
@@ -151,24 +156,24 @@ float UiPainter::MeasureType(std::wstring_view text, TypeRole role) {
 
 void UiPainter::FocusGlow(float x, float y, float w, float h, float radius, float amount) {
     if (amount <= 0.001f) return;
-    // Two diffuse drops (0 24 48 -12 at 65% and 0 8 16 -4 at 45%), as stacked translucent fills.
+    // Two diffuse drops (0 24 48 -12 and 0 8 16 -4), as stacked translucent fills: warm and light
+    // on paper, deeper over a game.
+    const float drop = Theme::dark ? 1.0f : 0.55f;
     for (int i = 0; i < 6; ++i) {
         const float spread = 4.0f + i * 5.0f;
         Round(x - spread + 12, y + 18 - spread + 12, w + 2 * spread - 24, h + 2 * spread - 24,
-              radius + spread, 0, 0.07f * amount);
+              radius + spread, Palette::Shadow, 0.07f * drop * amount);
     }
     for (int i = 0; i < 3; ++i) {
         const float spread = 1.0f + i * 3.0f;
         Round(x - spread + 4, y + 6 - spread + 4, w + 2 * spread - 8, h + 2 * spread - 8,
-              radius + spread, 0, 0.12f * amount);
+              radius + spread, Palette::Shadow, 0.12f * drop * amount);
     }
-    // The halo: white 15% fading over 24 px, then the 1.5 px ring at 80%.
-    for (int i = 0; i < 4; ++i) {
-        const float spread = 3.0f + i * 5.0f;
-        Outline(x - spread, y - spread, w + 2 * spread, h + 2 * spread, radius + spread, 0xffffff,
-                0.04f * amount * (1.0f - i / 4.0f), 5);
-    }
-    Outline(x - 1.5f, y - 1.5f, w + 3, h + 3, radius + 1.5f, 0xffffff, 0.82f * amount, 1.5f);
+    // The Dyer focus: a 3 px gap in the ground colour, then a 3 px ring in the brand red, the way
+    // the screens draw it (box-shadow 0 0 0 3px ground, 0 0 0 6px red).
+    Outline(x - 1.5f, y - 1.5f, w + 3, h + 3, radius + 1.5f, Palette::Canvas,
+            (Theme::dark ? 0.6f : 1.0f) * amount, 3);
+    Outline(x - 4.5f, y - 4.5f, w + 9, h + 9, radius + 4.5f, Palette::Focus, amount, 3);
 }
 
 float UiPainter::BadgeWidth(std::wstring_view letters) {
@@ -177,7 +182,8 @@ float UiPainter::BadgeWidth(std::wstring_view letters) {
 float UiPainter::Badge(std::wstring_view letters, float cx, float cy, unsigned color) {
     const float width = BadgeWidth(letters);
     Round(cx - width / 2, cy - 11, width, 22, 11, Palette::Graphite);
-    Outline(cx - width / 2 + 0.5f, cy - 10.5f, width - 1, 21, 10.5f, 0xffffff, 0.15f);
+    Outline(cx - width / 2 + 0.5f, cy - 10.5f, width - 1, 21, 10.5f, Palette::Hairline,
+            Theme::dark ? 0.15f : 0.18f);
     Type(letters, TypeRole::Label, cx - width / 2, cy - 8, width, color, 1, TextAlign::Center);
     return width;
 }
@@ -190,12 +196,17 @@ float UiPainter::PillButton(std::wstring_view label, std::wstring_view letters, 
     const float text = MeasureType(label, TypeRole::BodyLarge);
     const float width = PillWidth(label, letters);
     if (primary) {
-        // A soft white lift under the primary action.
-        Round(x - 2, y + 2, width + 4, height + 4, (height + 4) / 2, 0xffffff, 0.06f);
+        // A soft lift under the primary action: the ink pill of the screens on paper.
+        Round(x - 2, y + 2, width + 4, height + 4, (height + 4) / 2,
+              Theme::dark ? Palette::Hairline : Palette::Shadow, Theme::dark ? 0.06f : 0.10f);
         Round(x, y, width, height, height / 2, Palette::Text);
+    } else if (Theme::dark) {
+        Round(x, y, width, height, height / 2, Palette::Hairline, 0.10f);
+        Outline(x + 0.5f, y + 0.5f, width - 1, height - 1, (height - 1) / 2, Palette::Hairline, 0.08f);
     } else {
-        Round(x, y, width, height, height / 2, 0xffffff, 0.10f);
-        Outline(x + 0.5f, y + 0.5f, width - 1, height - 1, (height - 1) / 2, 0xffffff, 0.08f);
+        // Secondary actions are white pills on paper.
+        Round(x, y + 3, width, height, height / 2, Palette::Shadow, 0.06f);
+        Round(x, y, width, height, height / 2, Palette::Surface);
     }
     Type(label, TypeRole::BodyLarge, x + 28, y + (height - 26) / 2, text + 2,
          primary ? Palette::OnAccent : Palette::Text);
@@ -205,8 +216,12 @@ float UiPainter::PillButton(std::wstring_view label, std::wstring_view letters, 
 }
 float UiPainter::Chip(std::wstring_view text, float x, float y, unsigned color, float alpha) {
     const float width = MeasureType(text, TypeRole::Label) + 24;
-    Round(x, y, width, 26, 13, 0xffffff, 0.08f * alpha);
-    Outline(x + 0.5f, y + 0.5f, width - 1, 25, 12.5f, 0xffffff, 0.10f * alpha);
+    if (Theme::dark) {
+        Round(x, y, width, 26, 13, Palette::Hairline, 0.08f * alpha);
+        Outline(x + 0.5f, y + 0.5f, width - 1, 25, 12.5f, Palette::Hairline, 0.10f * alpha);
+    } else {
+        Round(x, y, width, 26, 13, Palette::Surface, alpha); // the screens' white metadata capsules
+    }
     Type(text, TypeRole::Label, x + 12, y + 5, width - 22, color, alpha);
     return width;
 }
@@ -416,8 +431,13 @@ void UiPainter::ScrollIndicator(float x, float y, float height, std::size_t firs
 
 void UiPainter::SelectionCard(float x, float y, float w, float h, bool focused, float radius) {
     Round(x, y, w, h, radius, focused ? Palette::RowActive : Palette::Surface);
-    Outline(x + 0.5f, y + 0.5f, w - 1, h - 1, radius, Palette::Text,
-            focused ? 0.9f : 0.08f, focused ? 2.0f : 1.0f);
+    if (focused) {
+        // The same red ring as every other focus, with the ground colour between.
+        Outline(x - 1.5f, y - 1.5f, w + 3, h + 3, radius + 1.5f, Palette::Canvas, 1, 3);
+        Outline(x - 4.5f, y - 4.5f, w + 9, h + 9, radius + 4.5f, Palette::Focus, 1, 3);
+    } else {
+        Outline(x + 0.5f, y + 0.5f, w - 1, h - 1, radius, Palette::Hairline, 0.08f, 1.0f);
+    }
 }
 
 void UiPainter::PushClip(float x, float y, float w, float h) {
@@ -438,7 +458,7 @@ void UiPainter::RowFrame(float x, float y, float width, float height, bool activ
     if (active) {
         const float grow = width * 0.005f;
         Round(x - grow, y - grow * height / width, width + 2 * grow, height + 2 * grow * height / width,
-              12, 0xffffff, 0.08f);
+              12, Theme::dark ? Palette::Hairline : Palette::Surface, Theme::dark ? 0.08f : 1.0f);
     } else {
         Round(x + 16, y + height - 1, width - 32, 1, 0, Palette::Graphite);
     }
@@ -448,17 +468,24 @@ void UiPainter::RowFrame(float x, float y, float width, float height, bool activ
 void UiPainter::PageHeader(float x, float y, UiIcon icon, std::wstring_view title,
                            std::wstring_view subtitle) {
     Round(x, y + 5, 48, 48, 24, Palette::Graphite);
-    Outline(x + 0.5f, y + 5.5f, 47, 47, 23.5f, 0xffffff, 0.12f);
+    Outline(x + 0.5f, y + 5.5f, 47, 47, 23.5f, Palette::Hairline, 0.12f);
     Icon(icon, x + 12, y + 17, Palette::Text, 24);
     Type(title, TypeRole::HeadlineLarge, x + 66, y - 2, 850, Palette::Text);
     Type(subtitle, TypeRole::Body, x + 68, y + 47, 790, Palette::TextSecondary);
 }
 
 void UiPainter::Switch(float x, float y, bool on, bool active) {
-    Round(x, y, 52, 28, 14, on ? Palette::Text : Palette::Graphite);
-    if (!on) Outline(x + 0.5f, y + 0.5f, 51, 27, 13.5f, 0xffffff, active ? 0.45f : 0.15f);
+    if (Theme::dark) {
+        Round(x, y, 52, 28, 14, on ? Palette::Text : Palette::Graphite);
+        if (!on) Outline(x + 0.5f, y + 0.5f, 51, 27, 13.5f, Palette::Hairline, active ? 0.45f : 0.15f);
+        brush->SetColor(D2D1::ColorF(on ? Palette::OnAccent : Palette::Text));
+    } else {
+        // The screens' switch: red track when on, a warm grey one when off, always a white knob.
+        Round(x, y, 52, 28, 14, on ? Palette::Brand : 0xd6cfc6u);
+        if (!on && active) Outline(x + 0.5f, y + 0.5f, 51, 27, 13.5f, Palette::Hairline, 0.35f);
+        brush->SetColor(D2D1::ColorF(0xffffff));
+    }
     const float knob = on ? x + 38 : x + 14;
-    brush->SetColor(D2D1::ColorF(on ? Palette::OnAccent : Palette::Text));
     surface->FillEllipse(D2D1::Ellipse(D2D1::Point2F(knob, y + 14), 10, 10), brush.Get());
 }
 

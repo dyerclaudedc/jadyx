@@ -29,6 +29,6 @@ if($LASTEXITCODE -ne 0){throw 'Updater browser gates failed'}
 if($CandidateDirectory){
     & python tools/xbox/tests/updater-e2e.py build-uwp/test-results/updater/e2e.exe $CandidateDirectory
     if($LASTEXITCODE -ne 0){throw 'Signed candidate end-to-end gate failed'}
-    & python tools/xbox/tests/updater-appx-integrity.py (Join-Path $CandidateDirectory 'Jadyx_0.3.6.0_x64.appx')
+    & python tools/xbox/tests/updater-appx-integrity.py (Join-Path $CandidateDirectory 'DyerPlay_0.3.6.0_x64.appx')
     if($LASTEXITCODE -ne 0){throw 'Signed candidate integrity gates failed'}
 }

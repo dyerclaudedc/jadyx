@@ -25,6 +25,8 @@ add_executable(jadyx WIN32
     pulse/pulse_store_gate.cpp
     pulse/pulse_store_gate.h
     app/alloc_watch.cpp
+    app/console_model.cpp
+    app/console_model.h
     app/alloc_watch.h
     input/uwp_input.cpp
     input/uwp_input.h

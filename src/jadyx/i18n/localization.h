@@ -597,6 +597,10 @@ enum class Text : std::uint16_t {
     LastPlayedSorted,
     MultipleControllers,
     MultipleControllersHint,
+    PerformanceMode,
+    PerformanceModeHint,
+    PerformanceModeTv,
+    PerformanceModeHandheld,
 
     // Tabs, sections and filters
     TabHome,

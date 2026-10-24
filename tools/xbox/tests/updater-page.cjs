@@ -38,7 +38,7 @@ function load(language, mode) {
       if (mode === 'busy' || mode === 'lost') throw Error(mode);
       return {json: async () => ({
         download: mode === 'foreign' ? 'https://other.invalid/package' : '/api/v1/update/package?ticket=' + ticket,
-        filename: mode === 'filename' ? 'wrong.exe' : 'Jadyx_0.3.6.0_x64.appx',
+        filename: mode === 'filename' ? 'wrong.exe' : 'DyerPlay_0.3.6.0_x64.appx',
         version: '0.3.6.0', size: 1234
       })};
     }
@@ -85,15 +85,15 @@ function load(language, mode) {
 
       assert.equal($('update-go').disabled, false);
       assert.equal($('update-badge').hidden, false);
-      assert.equal($('update-title').textContent, 'Jadyx 0.3.6.0');
-      assert.equal($('update-meta').textContent, 'Jadyx_0.3.6.0_x64.appx · 1234 B');
+      assert.equal($('update-title').textContent, 'Dyer Play 0.3.6.0');
+      assert.equal($('update-meta').textContent, 'DyerPlay_0.3.6.0_x64.appx · 1234 B');
       assert.equal($('update-step-2').className, 'now');
 
       // The click starts the download and opens Device Portal; the ticket serves only once.
       $('update-go').fire('click');
       assert.equal(page.clicked(), 1);
       assert.equal($('update-package').href, '/api/v1/update/package?ticket=' + ticket);
-      assert.equal($('update-package').download, 'Jadyx_0.3.6.0_x64.appx');
+      assert.equal($('update-package').download, 'DyerPlay_0.3.6.0_x64.appx');
       assert.deepEqual(page.opened, [['https://192.168.1.10:11443', '_blank', 'noopener']]);
       assert.equal($('update-step-2').className, 'done');
       assert.equal($('update-step-3').className, 'now');

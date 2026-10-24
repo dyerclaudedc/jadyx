@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Jadyx Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "jadyx/library/uwp_library.h"
+#include "jadyx/app/console_model.h"
 #include "jadyx/input/stick_navigation.h"
 #include "jadyx/input/controller_catalog.h"
 #include "jadyx/ui/text_entry_input.h"
@@ -131,6 +132,7 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
     std::wstring options_notice;
     system_page.settings = LoadSystemSettings();
     system_page.locale = DetectSystemLocale();
+    system_page.series_s = DetectConsoleModel() == ConsoleModel::XboxSeriesS;
     // Titles are read in the game language, so the library shows what the games will.
     Settings::Language title_language = ApplySystemSettings().game_language;
     const LibraryCache cache{DefaultLibraryCacheDirectory()};

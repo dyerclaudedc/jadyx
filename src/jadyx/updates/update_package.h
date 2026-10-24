@@ -11,7 +11,7 @@ struct UpdatePackage {
     std::uint64_t size{};
     bool operator==(const UpdatePackage&) const = default;
     std::string FileName() const {
-        return "Jadyx_" + version + "_x64.appx";
+        return "DyerPlay_" + version + "_x64.appx";
     }
 };
 } // namespace Jadyx::Updates

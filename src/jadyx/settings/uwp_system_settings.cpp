@@ -9,6 +9,7 @@
 #include "common/settings.h"
 #include "video_core/performance_overlay.h"
 #include "core/hle/service/acc/profile_manager.h"
+#include "jadyx/app/console_model.h"
 
 namespace Jadyx {
 namespace {
@@ -22,6 +23,7 @@ constexpr auto PulseSessionsKey = L"system_pulse_sessions";
 constexpr auto PlayTimeKey = L"system_track_play_time";
 constexpr auto MultipleControllersKey = L"system_multiple_controllers";
 constexpr auto UpscalingKey = L"system_upscaling";
+constexpr auto ConsoleModeKey = L"system_console_mode";
 
 /// Saved as the enum's value, or -1 for "follow the system". A value that is not a selectable
 /// option (an older or newer build's) also falls back to the system.
@@ -59,6 +61,7 @@ SystemSettings LoadSystemSettings() {
         if (values.HasKey(PlayTimeKey)) settings.track_play_time = winrt::unbox_value<bool>(values.Lookup(PlayTimeKey));
         if (values.HasKey(MultipleControllersKey))
             settings.multiple_controllers = winrt::unbox_value<bool>(values.Lookup(MultipleControllersKey));
+        settings.console_mode = LoadChoice(values, ConsoleModeKey, SelectableConsoleModes());
         if (values.HasKey(UpscalingKey))
             settings.upscaling = UpscalingFromValue(winrt::unbox_value<int32_t>(values.Lookup(UpscalingKey)))
                                      .value_or(Upscaling::Bilinear);
@@ -79,6 +82,7 @@ bool SaveSystemSettings(const SystemSettings& settings) {
         values.Insert(PlayTimeKey, winrt::box_value(settings.track_play_time));
         values.Insert(MultipleControllersKey, winrt::box_value(settings.multiple_controllers));
         values.Insert(UpscalingKey, winrt::box_value(static_cast<int32_t>(settings.upscaling)));
+        values.Insert(ConsoleModeKey, winrt::box_value(ChoiceValue(settings.console_mode)));
         return true;
     } catch (...) { return false; }
 }
@@ -105,8 +109,15 @@ ResolvedSystem ApplySystemSettings() {
     I18n::SetUiLanguage(*resolved.ui_language);
     Settings::values.language_index = resolved.game_language;
     Settings::values.region_index = resolved.region;
+    // Docked or handheld for the next game. A handheld controller style still wins: it is applied
+    // after this (ApplyControllerStyleSettings), as a console with its Joy-Cons attached is undocked.
+    const auto model = DetectConsoleModel();
+    const auto console_mode = ResolveConsoleMode(settings, model == ConsoleModel::XboxSeriesS);
+    Settings::values.use_docked_mode.SetValue(console_mode);
     // The console's nickname, which some games show; Eden's default is its own name.
-    Settings::values.device_name.SetValue("Jadyx");
+    Settings::values.device_name.SetValue("Dyer Play");
+    LOG_INFO(Frontend, "System: {}, performance mode {}{}", ConsoleModelName(model),
+             Settings::CanonicalizeEnum(console_mode), settings.console_mode ? "" : " (automatic)");
     LOG_INFO(Frontend, "System: Windows language {}, region {}; interface {}, game language {}, region {}",
              locale.languages.empty() ? std::string{"(none)"} : I18n::ToUtf8(locale.languages.front()),
              locale.region.empty() ? std::string{"(none)"} : I18n::ToUtf8(locale.region),

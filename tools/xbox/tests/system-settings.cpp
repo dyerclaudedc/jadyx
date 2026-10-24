@@ -77,7 +77,7 @@ int main() {
     SystemPage page;
     page.open = true;
     page.locale = locale(L"es-CO", L"CO");
-    check(SystemRowValue(page, SystemPage::UserName) == L"Jadyx");
+    check(SystemRowValue(page, SystemPage::UserName) == L"Dyer Play");
     check(SystemRowValue(page, SystemPage::InterfaceLanguage) == L"Automático · Español");
     check(SystemRowValue(page, SystemPage::GameLanguage) == L"Automático · Español (Latinoamérica)");
     check(SystemRowValue(page, SystemPage::Region) == L"Automático · América");
@@ -88,6 +88,19 @@ int main() {
     check(page.settings.ui_language.empty());
     page.selected = SystemPage::Region;
     check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed && page.settings.region);
+    // Performance mode: Automatic (docked) first, then TV and Handheld.
+    check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
+          page.selected == SystemPage::PerformanceMode);
+    check(SystemRowValue(page, SystemPage::PerformanceMode) == L"Automático · TV · 1080p");
+    check(HandleSystemInput(page, SystemInput::Left) == SystemPageEffect::Changed &&
+          page.settings.console_mode == Settings::ConsoleMode::Handheld &&
+          SystemRowValue(page, SystemPage::PerformanceMode) == L"Portátil · 720p");
+    check(HandleSystemInput(page, SystemInput::Right) == SystemPageEffect::Changed &&
+          !page.settings.console_mode);
+    check(ResolveConsoleMode(page.settings, true) == Settings::ConsoleMode::Docked);
+    page.settings.console_mode = Settings::ConsoleMode::Handheld;
+    check(ResolveConsoleMode(page.settings, false) == Settings::ConsoleMode::Handheld);
+    page.settings.console_mode.reset();
     check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
           page.selected == SystemPage::AdultMods);
     check(SystemRowValue(page, SystemPage::AdultMods) == L"Ocultos");
@@ -122,6 +135,9 @@ int main() {
     check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
           page.selected == SystemPage::ClearCache);
     check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::ClearCache);
+    check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
+          page.selected == SystemPage::Updates);
+    check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::OpenUpdates);
     check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
           page.selected == SystemPage::UserName);
     check(HandleSystemInput(page, SystemInput::Left) == SystemPageEffect::None && !page.name_editor);

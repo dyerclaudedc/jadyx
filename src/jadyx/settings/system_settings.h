@@ -23,7 +23,7 @@ namespace Jadyx {
 
 /// The Switch shows user names of up to 10 characters; games lay them out for that.
 inline constexpr std::size_t MaxUserNameLength = 10;
-inline constexpr std::wstring_view DefaultUserName = L"Jadyx";
+inline constexpr std::wstring_view DefaultUserName = L"Dyer Play";
 
 struct SystemSettings {
     std::wstring ui_language;                         ///< BCP 47 tag; empty follows the system.
@@ -36,6 +36,10 @@ struct SystemSettings {
     bool track_play_time{true}; ///< Counts play time per game and orders the library by it (play_history.h).
     bool multiple_controllers{true}; ///< Extra pads play as players 2-8 (uwp_input.cpp); off keeps one.
     Upscaling upscaling{Upscaling::Bilinear};         ///< Set from the in-game menu.
+    /// How the emulated Switch presents itself to games: on the TV dock (up to 1080p) or in
+    /// handheld mode (up to 720p, lighter on the GPU and on render-target memory). nullopt is
+    /// Automatic, resolved by ResolveConsoleMode for the console the app runs on.
+    std::optional<Settings::ConsoleMode> console_mode;
 
     bool operator==(const SystemSettings&) const = default;
 };
@@ -162,6 +166,29 @@ inline ResolvedSystem ResolveSystem(const SystemSettings& settings, const System
     resolved.game_language = settings.game_language.value_or(GameLanguageForLocale(locale));
     resolved.region = settings.region.value_or(RegionForLocale(locale));
     return resolved;
+}
+
+/// The performance modes a player can pick besides Automatic: TV first, the default.
+inline std::span<const Settings::ConsoleMode> SelectableConsoleModes() {
+    static constexpr std::array<Settings::ConsoleMode, 2> modes{Settings::ConsoleMode::Docked,
+                                                                Settings::ConsoleMode::Handheld};
+    return modes;
+}
+
+/// Automatic plays docked everywhere for now: Series S runs the docked 1080p path at full speed
+/// in the games measured so far. A Series S player who needs more headroom picks Handheld.
+inline Settings::ConsoleMode AutomaticConsoleMode(bool series_s) {
+    (void)series_s;
+    return Settings::ConsoleMode::Docked;
+}
+
+inline Settings::ConsoleMode ResolveConsoleMode(const SystemSettings& settings, bool series_s) {
+    return settings.console_mode.value_or(AutomaticConsoleMode(series_s));
+}
+
+inline I18n::Text ConsoleModeText(Settings::ConsoleMode mode) {
+    return mode == Settings::ConsoleMode::Handheld ? I18n::Text::PerformanceModeHandheld
+                                                   : I18n::Text::PerformanceModeTv;
 }
 
 /// The languages a player can pick, in the order of the Switch's own list. Eden's legacy

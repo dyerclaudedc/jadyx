@@ -17,6 +17,10 @@ on:
         description: Package version for a release (MAJOR.MINOR.BUILD.REVISION); empty keeps the manifest's
         type: string
         default: ""
+      optional_signing:
+        description: Without the signing secrets, skip the appx with a warning instead of failing
+        type: boolean
+        default: false
     secrets:
       JADYX_PFX_BASE64:
         required: false
@@ -168,6 +172,12 @@ jobs:
           -DUSE_CCACHE=ON -DCCACHE_BINARY=sccache
           -DCMAKE_POLICY_DEFAULT_CMP0141=NEW -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
 
+      # Compiler and linker errors become annotations of the run, so they can be read from the
+      # commit's check runs without opening the full log.
+      - name: Error annotations
+        shell: bash
+        run: echo "::add-matcher::.github/msvc-matcher.json"
+
       - name: Build
         shell: cmd
         run: tools\xbox\build-env.bat cmake --build --preset uwp-x64 --target jadyx
@@ -241,15 +251,22 @@ jobs:
           path: ${{ runner.temp }}/mesa
 
       - name: Pack and sign
+        id: pack
         shell: powershell
         env:
           JADYX_PFX_BASE64: ${{ secrets.JADYX_PFX_BASE64 }}
           JADYX_PFX_PASSWORD: ${{ secrets.JADYX_PFX_PASSWORD }}
           PACKAGE_VERSION: ${{ inputs.package_version }}
+          OPTIONAL_SIGNING: ${{ inputs.optional_signing }}
         run: |
           $ErrorActionPreference = "Stop"
           # Every package carries the project's certificate, so the console updates in place.
           if (-not $env:JADYX_PFX_BASE64 -or -not $env:JADYX_PFX_PASSWORD) {
+              if ($env:OPTIONAL_SIGNING -eq 'true') {
+                  "::warning title=No appx::Add the JADYX_PFX_BASE64 and JADYX_PFX_PASSWORD repository secrets to get a signed appx from this build."
+                  "skipped=true" >> $env:GITHUB_OUTPUT
+                  exit 0
+              }
               throw "The JADYX_PFX_BASE64 / JADYX_PFX_PASSWORD secrets are not set"
           }
           $pfx = Join-Path $env:RUNNER_TEMP "jadyx.pfx"
@@ -267,10 +284,10 @@ jobs:
           [xml]$mf = Get-Content build-uwp\package\layout\AppxManifest.xml -Raw
           $version = $mf.Package.Identity.Version
           $out = New-Item -ItemType Directory -Force out
-          Copy-Item build-uwp\package\jadyx.appx "out\Jadyx_${version}_x64.appx"
-          Copy-Item build-uwp\package\jadyx.cer out\Jadyx.cer
+          Copy-Item build-uwp\package\jadyx.appx "out\DyerPlay_${version}_x64.appx"
+          Copy-Item build-uwp\package\jadyx.cer out\DyerPlay.cer
           Copy-Item build-uwp\package\Microsoft.VCLibs.x64.14.00.appx out\
-          Compress-Archive build-uwp\bin\jadyx.pdb "out\Jadyx_${version}_symbols.zip"
+          Compress-Archive build-uwp\bin\jadyx.pdb "out\DyerPlay_${version}_symbols.zip"
           [ordered]@{
               version = $version
               commit  = $env:GITHUB_SHA
@@ -282,6 +299,7 @@ jobs:
           Get-ChildItem out | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v7
+        if: steps.pack.outputs.skipped != 'true'
         with:
           name: jadyx-package
           path: out/*

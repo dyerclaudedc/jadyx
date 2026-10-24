@@ -96,8 +96,8 @@ bool ValidatePackage(const std::filesystem::path& path, const Release& release,
                 return false;
             const auto id = nodes.GetAt(0).as<XmlElement>();
             identity =
-                id.GetAttribute(L"Name") == L"Jadyx" &&
-                id.GetAttribute(L"Publisher") == L"CN=JadyxDev" &&
+                id.GetAttribute(L"Name") == L"DyerPlay" &&
+                id.GetAttribute(L"Publisher") == L"CN=DyerPlay" &&
                 id.GetAttribute(L"ProcessorArchitecture") == L"x64" &&
                 id.GetAttribute(L"Version") == winrt::to_hstring(FormatVersion(release.version));
             if (!identity)

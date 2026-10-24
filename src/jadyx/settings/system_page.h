@@ -18,7 +18,7 @@
 namespace Jadyx {
 
 struct SystemPage {
-    enum Row : std::size_t { UserName, InterfaceLanguage, GameLanguage, Region, AdultMods, PerformanceStats, PulseSessions, PlayTime, MultipleControllers, ClearCache, Updates, RowCount };
+    enum Row : std::size_t { UserName, InterfaceLanguage, GameLanguage, Region, PerformanceMode, AdultMods, PerformanceStats, PulseSessions, PlayTime, MultipleControllers, ClearCache, Updates, RowCount };
 
     bool updates_open{};
     std::size_t update_row{}, update_detail{}, update_scroll{};
@@ -28,6 +28,7 @@ struct SystemPage {
     std::size_t selected{};
     SystemSettings settings; ///< As saved.
     SystemLocale locale;     ///< As Windows reports it, for the "Automatic (...)" values.
+    bool series_s{};         ///< Running on an Xbox Series S: what Automatic resolves to there.
     std::wstring notice;
     std::optional<TextEntry> name_editor;
     std::wstring editor_notice;
@@ -91,6 +92,9 @@ inline SystemPageEffect HandleSystemInput(SystemPage& page, SystemInput input) {
     case Row::Region:
         settings.region = StepChoice(settings.region, SelectableRegions(), back);
         return SystemPageEffect::Changed;
+    case Row::PerformanceMode:
+        settings.console_mode = StepChoice(settings.console_mode, SelectableConsoleModes(), back);
+        return SystemPageEffect::Changed;
     case Row::AdultMods:
         settings.show_adult_mods = !settings.show_adult_mods;
         return SystemPageEffect::Changed;
@@ -142,6 +146,7 @@ inline I18n::Text SystemRowTitle(SystemPage::Row row) {
     case SystemPage::InterfaceLanguage: return Text::InterfaceLanguage;
     case SystemPage::GameLanguage:      return Text::GameLanguage;
     case SystemPage::Region:            return Text::ConsoleRegion;
+    case SystemPage::PerformanceMode:   return Text::PerformanceMode;
     case SystemPage::PerformanceStats:  return Text::PerformanceStats;
     case SystemPage::AdultMods:         return Text::ModsAdult;
     case SystemPage::PulseSessions:     return Text::PulseSessions;
@@ -159,6 +164,7 @@ inline I18n::Text SystemRowHint(SystemPage::Row row) {
     case SystemPage::InterfaceLanguage: return Text::InterfaceLanguageHint;
     case SystemPage::GameLanguage:      return Text::GameLanguageHint;
     case SystemPage::Region:            return Text::ConsoleRegionHint;
+    case SystemPage::PerformanceMode:   return Text::PerformanceModeHint;
     case SystemPage::PerformanceStats:  return Text::PerformanceStatsHint;
     case SystemPage::AdultMods:         return Text::ModsAdultHint;
     case SystemPage::PulseSessions:     return Text::PulseSessionsHint;
@@ -188,6 +194,9 @@ inline std::wstring SystemRowValue(const SystemPage& page, SystemPage::Row row) 
     case SystemPage::Region:
         if (settings.region) return std::wstring{I18n::Tr(RegionText(*settings.region))};
         return automatic(I18n::Tr(RegionText(RegionForLocale(page.locale))));
+    case SystemPage::PerformanceMode:
+        if (settings.console_mode) return std::wstring{I18n::Tr(ConsoleModeText(*settings.console_mode))};
+        return automatic(I18n::Tr(ConsoleModeText(AutomaticConsoleMode(page.series_s))));
     case SystemPage::PerformanceStats:
         return std::wstring{I18n::Tr(settings.show_performance_stats ? Text::Yes : Text::No)};
     case SystemPage::AdultMods:

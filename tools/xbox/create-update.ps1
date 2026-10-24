@@ -8,7 +8,7 @@ param(
     [ValidateSet('stable','preview')][string]$Channel='stable',
     [string]$Notes='',
     [string]$PfxPath,
-    [string]$CertificateThumbprint='82FAA23764FECD4E03DF6F379E2504A859414B49'
+    [string]$CertificateThumbprint='EB4492CA755DDD52B3B1C94936D4B48A1CDD3BC8'
 )
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -21,7 +21,7 @@ try {
     $reader=[IO.StreamReader]::new($entry.Open())
     try {[xml]$manifest=$reader.ReadToEnd()}finally{$reader.Dispose()}
     $id=$manifest.Package.Identity
-    if($id.Name -ne 'Jadyx' -or $id.Publisher -ne 'CN=JadyxDev' -or $id.ProcessorArchitecture -ne 'x64'){throw 'Wrong package identity'}
+    if($id.Name -ne 'DyerPlay' -or $id.Publisher -ne 'CN=DyerPlay' -or $id.ProcessorArchitecture -ne 'x64'){throw 'Wrong package identity'}
     $version=[string]$id.Version
     if($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' -or
        @($version.Split('.')|Where-Object {[int]$_ -gt 65535}).Count){throw 'Invalid package version'}
@@ -45,13 +45,13 @@ if(-not $rsa){throw 'Release signing certificate has no RSA private key'}
 try{
     $public=$rsa.ExportSubjectPublicKeyInfoPem() -replace '\s',''
     $pinned=(Get-Content -LiteralPath "$PSScriptRoot\..\..\src\jadyx\updates\release_public_key.pem" -Raw) -replace '\s',''
-    if($public -cne $pinned){throw 'Signing key differs from the key trusted by Jadyx'}
+    if($public -cne $pinned){throw 'Signing key differs from the key trusted by Dyer Play'}
     $file=Get-Item -LiteralPath $Package
     $metadata=[ordered]@{
         schema=1;version=$version;tag="v$version";channel=$Channel
-        identity=@{name='Jadyx';publisher='CN=JadyxDev';architecture='x64'}
+        identity=@{name='DyerPlay';publisher='CN=DyerPlay';architecture='x64'}
         min_os='10.0.17763.0';vclibs_min='14.0.33519.0';diagnostic=$false
-        url="https://github.com/JulianDr14/jadyx/releases/download/v$version/Jadyx_${version}_x64.appx"
+        url="https://github.com/dyerclaudedc/jadyx/releases/download/v$version/DyerPlay_${version}_x64.appx"
         size=$file.Length;sha256=(Get-FileHash -LiteralPath $Package -Algorithm SHA256).Hash.ToLowerInvariant()
         notes=$Notes;published=[DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ')
     }

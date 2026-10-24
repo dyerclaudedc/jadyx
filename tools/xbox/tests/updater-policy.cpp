@@ -66,14 +66,14 @@ int main(int argc, char **argv) {
                    {"tag", "v0.3.6.0"},
                    {"channel", "stable"},
                    {"identity",
-                    {{"name", "Jadyx"},
-                     {"publisher", "CN=JadyxDev"},
+                    {{"name", "DyerPlay"},
+                     {"publisher", "CN=DyerPlay"},
                      {"architecture", "x64"}}},
                    {"diagnostic", false},
                    {"min_os", "10.0.17763.0"},
                    {"vclibs_min", "14.0.33519.0"},
-                   {"url", "https://github.com/JulianDr14/jadyx/releases/"
-                           "download/v0.3.6.0/Jadyx_0.3.6.0_x64.appx"},
+                   {"url", "https://github.com/dyerclaudedc/jadyx/releases/"
+                           "download/v0.3.6.0/DyerPlay_0.3.6.0_x64.appx"},
                    {"sha256", std::string(64, 'a')},
                    {"size", 1024},
                    {"notes", "Notas: español y português"},
@@ -104,12 +104,12 @@ int main(int argc, char **argv) {
     j[field] = nullptr;
     reject(j);
   }
-  for (const auto url : {"http://github.com/JulianDr14/jadyx/releases/download/"
-                         "v0.3.6.0/Jadyx_0.3.6.0_x64.appx",
+  for (const auto url : {"http://github.com/dyerclaudedc/jadyx/releases/download/"
+                         "v0.3.6.0/DyerPlay_0.3.6.0_x64.appx",
                          "https://github.com/evil/jadyx/releases/download/"
-                         "v0.3.6.0/Jadyx_0.3.6.0_x64.appx",
-                         "https://github.com/JulianDr14/jadyx/releases/"
-                         "download/v0.3.6.0/Jadyx_0.3.6.0_x64.appx?evil"}) {
+                         "v0.3.6.0/DyerPlay_0.3.6.0_x64.appx",
+                         "https://github.com/dyerclaudedc/jadyx/releases/"
+                         "download/v0.3.6.0/DyerPlay_0.3.6.0_x64.appx?evil"}) {
     auto j = valid;
     j["url"] = url;
     reject(j);

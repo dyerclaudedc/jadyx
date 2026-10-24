@@ -75,7 +75,7 @@ HttpClient MakeClient(bool updates = false) {
     filter.CacheControl().ReadBehavior(Filters::HttpCacheReadBehavior::NoCache);
     filter.CacheControl().WriteBehavior(Filters::HttpCacheWriteBehavior::NoCache);
     HttpClient client{filter};
-    client.DefaultRequestHeaders().UserAgent().TryParseAdd(L"Jadyx-mods/1.0");
+    client.DefaultRequestHeaders().UserAgent().TryParseAdd(L"DyerPlay-mods/1.0");
     return client;
 }
 

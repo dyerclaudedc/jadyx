@@ -10,7 +10,7 @@ namespace Jadyx::PortalWeb {
 // (/logo.png) and nothing external, so icons are inline SVG.
 inline constexpr std::string_view Page=R"HTML(<!doctype html>
 <html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#08090b"><link rel="icon" href="/logo.png"><title>Jadyx Portal</title><style>
+<meta name="theme-color" content="#08090b"><link rel="icon" href="/logo.png"><title>Dyer Play Portal</title><style>
 :root{color-scheme:dark;--canvas:#08090b;--surface:#111315;--row:#16181b;--graphite:#1c1f23;--active:#26282b;--text:#f5f5f7;--muted:#92959a;--hint:#b4b7bb;
  --warn:#f0c27a;--cyan:#2eb5e5;--crimson:#e02b41;--line:rgba(255,255,255,.08);--field:#2a2d31;
  font-family:Inter,"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;font-size:15px;line-height:22px;-webkit-font-smoothing:antialiased}
@@ -151,18 +151,18 @@ a.pill{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px
 @media(max-width:420px){.brand img{width:36px;height:36px}.word{font-size:16px;letter-spacing:.3em}.caps,.link span{display:none}.link{padding:0 11px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<body><header class="bar"><div class="brand"><img src="/logo.png" alt="Jadyx" width="44" height="44"><span class="word">JADYX</span><span class="caps">Portal</span></div>
+<body><header class="bar"><div class="brand"><img src="/logo.png" alt="Dyer Play" width="44" height="44"><span class="word">DYER PLAY</span><span class="caps">Portal</span></div>
 <nav class="tabs" role="tablist"><button id="tab-content" role="tab" aria-selected="true">Content</button><button id="tab-system" role="tab" aria-selected="false">System</button></nav>
 <span class="link" role="status"><i></i><span class="status-off" id="status-off">Not connected</span><span class="status-on" id="status-on">Connected</span></span></header>
 <div class="shell"><p id="message" role="alert"></p>
 <main class="gate"><img src="/logo.png" alt="" width="132" height="132"><p class="kicker" id="kicker">Local network portal</p><h1 id="title">Connect to your console</h1>
-<p id="intro">Enter the temporary code shown in Jadyx. Keep the app open in the library.</p>
+<p id="intro">Enter the temporary code shown in Dyer Play. Keep the app open in the library.</p>
 <form id="pair"><label id="label" for="code">Connection code</label>
 <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{8}" maxlength="8" placeholder="00000000" required>
 <button id="connect" class="primary">Connect</button><p class="hint" id="code-hint">8 digits · it changes every time you open the portal</p></form>
 <p id="connection" role="status" aria-live="polite"></p></main>
 <div class="app">
-<section class="card" id="view-update" aria-live="polite"><div class="update-top"><div><p class="kicker" id="update-kicker">Jadyx update</p><h1 id="update-title">Update Jadyx</h1>
+<section class="card" id="view-update" aria-live="polite"><div class="update-top"><div><p class="kicker" id="update-kicker">Dyer Play update</p><h1 id="update-title">Update Dyer Play</h1>
 <p id="update-meta"></p></div><span class="badge" id="update-badge" hidden><svg class="ico" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span id="update-verified">Signature verified</span></span></div>
 <ol class="steps" id="update-steps">
 <li class="done" id="update-step-1"><span class="n">1</span><div><h3 id="update-s1">Connect the browser</h3><p id="update-s1b">Done: this browser is connected to the console.</p></div></li>
@@ -233,39 +233,39 @@ a.pill{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px
 'use strict';
 const $=id=>document.getElementById(id),lang=navigator.language.toLowerCase(),es=lang.startsWith('es'),pt=lang.startsWith('pt');
 const words=pt?{
- title:'Conecte-se ao seu console',intro:'Digite o código temporário que o Jadyx mostra. Mantenha o app aberto na biblioteca.',label:'Código de conexão',connect:'Conectar',
+ title:'Conecte-se ao seu console',intro:'Digite o código temporário que o Dyer Play mostra. Mantenha o app aberto na biblioteca.',label:'Código de conexão',connect:'Conectar',
  uploadtitle:'Importar jogos NSP',uploadintro:'Somente jogos base. Os arquivos são copiados para o armazenamento interno do console.',fileslabel:'Selecionar arquivos NSP',
  namelabel:'Nome de destino (um único arquivo)',send:'Enviar / retomar',rename:'Renomear arquivo pendente',pause:'Pausar',discard:'Apagar arquivo parcial',
  kicker:'Portal da rede local','status-off':'Desconectado','status-on':'Conectado','code-hint':'8 dígitos · muda cada vez que você abre o portal','files-drop':'ou arraste-os para cá',files:'arquivos',
- privacy:'Rede local · Conexão HTTP sem criptografia.',ok:'Conexão estabelecida.',bad:'Código incorreto ou expirado. Gere outro no Jadyx.',
- lost:'A conexão foi encerrada. Conecte-se de novo pelo Jadyx; o progresso confirmado é mantido.',free:'Espaço livre',confirmed:'Confirmado',
+ privacy:'Rede local · Conexão HTTP sem criptografia.',ok:'Conexão estabelecida.',bad:'Código incorreto ou expirado. Gere outro no Dyer Play.',
+ lost:'A conexão foi encerrada. Conecte-se de novo pelo Dyer Play; o progresso confirmado é mantido.',free:'Espaço livre',confirmed:'Confirmado',
  speed:'Velocidade',eta:'Tempo restante',queue:'Na fila',choose:'Selecione um ou mais arquivos NSP.',same:'Há outro arquivo pendente. Selecione o mesmo arquivo para retomá-lo ou apague a transferência parcial.',
  receiving:'Recebendo',paused:'Pausado. Selecione o mesmo arquivo para continuar.',ready:'Aguardando validação',validating:'Validando NSP',publishing:'Adicionando à biblioteca',complete:'Instalado na biblioteca',
- busy:'Aguarde o fim da operação no Jadyx.',exists:'Esse nome já existe. Altere o nome de destino e tente de novo.',space:'Não há espaço suficiente.',
+ busy:'Aguarde o fim da operação no Dyer Play.',exists:'Esse nome já existe. Altere o nome de destino e tente de novo.',space:'Não há espaço suficiente.',
  file:'Nome ou arquivo inválido. Selecione um NSP.',base:'Somente jogos base são aceitos; não atualizações, DLC nem pacotes mistos.',
  nsp:'A estrutura do NSP é inválida.',incomplete:'O NSP está incompleto.',keys:'Não foi possível ler os metadados. Verifique as chaves do seu console e o arquivo NSP.',
  disk:'Não foi possível gravar ou publicar o arquivo.',interrupted:'Transferência interrompida. Você pode retomar a partir do progresso confirmado.',
  partial:'Há uma transferência pendente. Retome ou apague.',recovery:'Não foi possível recuperar o arquivo parcial. Apague-o antes de iniciar outro.',unavailable:'A importação não está disponível no momento.',
  attempts:'Tentativas demais. Aguarde um minuto.',version:'Versão de transferência incompatível. Recarregue a página.',idle:'Pronto para importar.'
 }:es?{
- title:'Conecta con tu consola',intro:'Introduce el código temporal que muestra Jadyx. Mantén la app abierta en la biblioteca.',label:'Código de conexión',connect:'Conectar',
+ title:'Conecta con tu consola',intro:'Introduce el código temporal que muestra Dyer Play. Mantén la app abierta en la biblioteca.',label:'Código de conexión',connect:'Conectar',
  uploadtitle:'Importar juegos NSP',uploadintro:'Solo juegos base. Los archivos se copian al almacenamiento interno de la consola.',fileslabel:'Seleccionar archivos NSP',
  namelabel:'Nombre de destino (un solo archivo)',send:'Subir / reanudar',rename:'Renombrar archivo pendiente',pause:'Pausar',discard:'Eliminar archivo parcial',
  kicker:'Portal de red local','status-off':'Sin conectar','status-on':'Conectado','code-hint':'8 dígitos · cambia cada vez que abres el portal','files-drop':'o arrástralos aquí',files:'archivos',
- privacy:'Red local · Conexión HTTP sin cifrado.',ok:'Conexión establecida.',bad:'Código incorrecto o caducado. Genera otro en Jadyx.',
- lost:'La conexión se ha cerrado. Vuelve a conectarte desde Jadyx; el progreso confirmado se conserva.',free:'Espacio libre',confirmed:'Confirmado',
+ privacy:'Red local · Conexión HTTP sin cifrado.',ok:'Conexión establecida.',bad:'Código incorrecto o caducado. Genera otro en Dyer Play.',
+ lost:'La conexión se ha cerrado. Vuelve a conectarte desde Dyer Play; el progreso confirmado se conserva.',free:'Espacio libre',confirmed:'Confirmado',
  speed:'Velocidad',eta:'Tiempo restante',queue:'En cola',choose:'Selecciona uno o varios archivos NSP.',same:'Hay un archivo pendiente distinto. Selecciona el mismo archivo para reanudarlo o elimina la transferencia parcial.',
  receiving:'Recibiendo',paused:'En pausa. Selecciona el mismo archivo para continuar.',ready:'Esperando a validar',validating:'Validando NSP',publishing:'Añadiendo a la biblioteca',complete:'Instalado en la biblioteca',
- busy:'Espera a que termine la operación en Jadyx.',exists:'Ese nombre ya existe. Cambia el nombre de destino y vuelve a intentarlo.',space:'No hay espacio suficiente.',
+ busy:'Espera a que termine la operación en Dyer Play.',exists:'Ese nombre ya existe. Cambia el nombre de destino y vuelve a intentarlo.',space:'No hay espacio suficiente.',
  file:'Nombre o archivo no válido. Selecciona un NSP.',base:'Solo se admiten juegos base; no actualizaciones, DLC ni paquetes mezclados.',
  nsp:'La estructura del NSP no es válida.',incomplete:'El NSP está incompleto.',keys:'No se pueden leer sus metadatos. Revisa las claves de tu consola y el archivo NSP.',
  disk:'No se pudo escribir o publicar el archivo.',interrupted:'Transferencia interrumpida. Puedes reanudar desde el progreso confirmado.',
  partial:'Hay una transferencia pendiente. Reanúdala o elimínala.',recovery:'No se pudo recuperar el parcial. Elimínalo antes de iniciar otro.',unavailable:'La importación no está disponible en este momento.',
  attempts:'Demasiados intentos. Espera un minuto.',version:'Versión de transferencia incompatible. Recarga la página.',idle:'Listo para importar.'
-}:{ok:'Connected.',bad:'Incorrect or expired code. Generate another in Jadyx.',lost:'Connection closed. Reconnect in Jadyx; confirmed progress is retained.',
+}:{ok:'Connected.',bad:'Incorrect or expired code. Generate another in Dyer Play.',lost:'Connection closed. Reconnect in Dyer Play; confirmed progress is retained.',
  free:'Free space',confirmed:'Confirmed',speed:'Speed',eta:'Time left',queue:'Queued',choose:'Choose one or more NSP files.',files:'files',
  same:'A different file is pending. Select the same file to resume, or discard the partial upload.',receiving:'Receiving',paused:'Paused. Select the same file to continue.',
- ready:'Waiting for validation',validating:'Validating NSP',publishing:'Adding to library',complete:'Installed in your library',busy:'Wait for the operation in Jadyx to finish.',
+ ready:'Waiting for validation',validating:'Validating NSP',publishing:'Adding to library',complete:'Installed in your library',busy:'Wait for the operation in Dyer Play to finish.',
  exists:'This destination already exists. Change its name and try again.',space:'Not enough free space.',file:'Invalid filename or file. Choose an NSP.',
  base:'Base games only; updates, DLC and mixed packages are not supported.',nsp:'Invalid NSP structure.',incomplete:'The NSP is incomplete.',
  keys:'Cannot read its metadata. Check your console keys and NSP file.',disk:'Could not write or publish this file.',
@@ -279,7 +279,7 @@ const labels=pt?{'tab-content':'Conteúdo','tab-system':'Sistema','content-kicke
 :es?{'tab-content':'Contenido','tab-system':'Sistema','content-kicker':'Instalar','cat-games-title':'Juegos','cat-games-sub':'NSP · juego base',
  'cat-library-title':'Biblioteca','cat-library-sub':'Actualizaciones · DLC · eliminar','system-kicker':'Archivos del sistema','cat-keys-title':'Claves'}:{};
 for(const [id,text]of Object.entries(labels))$(id).textContent=text;
-if(es||pt)document.title='Portal Jadyx';
+if(es||pt)document.title='Portal Dyer Play';
 // The header's tabs and each page's categories, as in the console: one of each group is shown.
 const tabs=[['tab-content','view-content'],['tab-system','view-system']],categories=[['cat-keys','keys-pane'],['cat-firmware','firmware-pane']];
 function choose(group,chosen){for(const [button,view]of group){$(button).ariaSelected=String(button===chosen);$(view).hidden=button!==chosen;}}
@@ -335,7 +335,7 @@ $('pair').addEventListener('submit',async event=>{
  session=(await response.json()).session;$('code').value='';$('pair').hidden=true;$('connection').textContent=words.ok;
  await refresh();clearInterval(timer);let polling=false;
  timer=setInterval(async()=>{if(polling)return;polling=true;try{await refresh();failures=0;$('connection').textContent=words.ok;}catch(error){
- // After the package went to Device Portal, the console going away is the install closing Jadyx.
+ // After the package went to Device Portal, the console going away is the install closing Dyer Play.
  if(updateStarted&&(error.message==='lost'||++failures>=3)){clearInterval(timer);session='';updateGone=true;renderUpdate();}
  else if(error.message==='lost'){clearInterval(timer);stopped=true;if(currentXHR)currentXHR.abort();session='';$('pair').hidden=false;$('upload').hidden=true;$('connection').textContent=words.lost;}
  else $('connection').textContent=words.interrupted;
@@ -443,7 +443,7 @@ const libraryWords=pt?{
  update:'Atualizações',dlc:'DLC',none_update:'Nenhuma atualização instalada.',none_dlc:'Nenhum DLC instalado.',pick_update:'Selecionar NSP de atualização',pick_dlc:'Selecionar NSP de DLC',
  send:'Enviar e instalar',remove_game:'Apagar jogo',remove:'Apagar',confirm:'Clique de novo para confirmar',external_item:'Pasta externa',
  warning:'Apagar o jogo remove também seus saves, atualizações e DLC deste console. Mods e cheats são mantidos. Não pode ser desfeito.',
- external:'Este jogo está em uma pasta externa; o Jadyx não apaga arquivos de lá.',removing:'Apagando…',removed_game:'Jogo apagado.',removed:'Conteúdo apagado.',
+ external:'Este jogo está em uma pasta externa; o Dyer Play não apaga arquivos de lá.',removing:'Apagando…',removed_game:'Jogo apagado.',removed:'Conteúdo apagado.',
  ready:'Aguardando instalação',validating:'Instalando',complete:'Instalado',idle:'Escolha arquivos para instalar.',failed:'Não foi possível concluir a operação.',
  game:'O jogo não está mais na biblioteca ou não pôde ser apagado.',content:'Não foi possível apagar esse conteúdo.',saves:'O jogo foi apagado, mas alguns saves não puderam ser removidos.',
  wrong_game:'Esse pacote pertence a outro jogo.',kind:'O pacote não é do tipo escolhido (atualização ou DLC).',conflict:'Já existe uma versão conflitante desse conteúdo.',
@@ -453,7 +453,7 @@ const libraryWords=pt?{
  update:'Actualizaciones',dlc:'DLC',none_update:'No hay actualizaciones instaladas.',none_dlc:'No hay DLC instalados.',pick_update:'Seleccionar NSP de actualización',pick_dlc:'Seleccionar NSP de DLC',
  send:'Subir e instalar',remove_game:'Eliminar juego',remove:'Eliminar',confirm:'Pulsa otra vez para confirmar',external_item:'Carpeta externa',
  warning:'Eliminar el juego borra también sus partidas, actualizaciones y DLC de esta consola. Los mods y trucos se conservan. No se puede deshacer.',
- external:'Este juego está en una carpeta externa; Jadyx no borra archivos de ahí.',removing:'Eliminando…',removed_game:'Juego eliminado.',removed:'Contenido eliminado.',
+ external:'Este juego está en una carpeta externa; Dyer Play no borra archivos de ahí.',removing:'Eliminando…',removed_game:'Juego eliminado.',removed:'Contenido eliminado.',
  ready:'Esperando a instalar',validating:'Instalando',complete:'Instalado',idle:'Selecciona archivos para instalar.',failed:'No se pudo completar la operación.',
  game:'El juego ya no está en la biblioteca o no se pudo eliminar.',content:'No se pudo eliminar ese contenido.',saves:'El juego se eliminó, pero algunas partidas no se pudieron borrar.',
  wrong_game:'Ese paquete es de otro juego.',kind:'El paquete no es del tipo elegido (actualización o DLC).',conflict:'Ya hay una versión de ese contenido que choca con esta.',
@@ -463,7 +463,7 @@ const libraryWords=pt?{
  update:'Updates',dlc:'DLC',none_update:'No updates installed.',none_dlc:'No DLC installed.',pick_update:'Choose update NSP files',pick_dlc:'Choose DLC NSP files',
  send:'Upload and install',remove_game:'Delete game',remove:'Delete',confirm:'Click again to confirm',external_item:'External folder',
  warning:'Deleting the game also deletes its saves, updates and DLC from this console. Mods and cheats are kept. This cannot be undone.',
- external:'This game is in an external folder; Jadyx does not delete files there.',removing:'Deleting…',removed_game:'Game deleted.',removed:'Content deleted.',
+ external:'This game is in an external folder; Dyer Play does not delete files there.',removing:'Deleting…',removed_game:'Game deleted.',removed:'Content deleted.',
  ready:'Waiting to install',validating:'Installing',complete:'Installed',idle:'Choose files to install.',failed:'The operation could not be completed.',
  game:'The game is no longer in the library or could not be deleted.',content:'That content could not be deleted.',saves:'The game was deleted, but some saves could not be removed.',
  wrong_game:'That package belongs to another game.',kind:'The package is not the chosen kind (update or DLC).',conflict:'A conflicting version of this content is already installed.',
@@ -708,11 +708,11 @@ $('system-cancel').addEventListener('click',async()=>{
 // Export logs to a file download; never fetch multi-GiB archives into a browser Blob. The
 // download starts with the export and follows it while it compresses; the link stays for a retry.
 let logsWaiting=false,logsRequesting=false;
-const logWords=pt?{title:'Logs e capturas',help:'Baixe toda a pasta de logs, incluindo as capturas gráficas, em um arquivo comprimido .tar.zst. Mantenha o Jadyx na biblioteca.',
+const logWords=pt?{title:'Logs e capturas',help:'Baixe toda a pasta de logs, incluindo as capturas gráficas, em um arquivo comprimido .tar.zst. Mantenha o Dyer Play na biblioteca.',
  download:'Comprimir e baixar logs',cancel:'Cancelar',save:'Salvar arquivo',scanning:'Preparando arquivos…',compressing:'Comprimindo e enviando',ready:'Arquivo pronto. Se o download não começar, clique em Salvar arquivo.',cancelled:'Compressão cancelada.',failed:'Não foi possível preparar os logs. Os originais foram preservados.',space:'Não há espaço livre suficiente para preparar o arquivo.',read:'Um arquivo de log mudou ou não pôde ser lido. Tente novamente.',saving:'Iniciando download…'}:es?{
- title:'Logs y capturas',help:'Descarga toda la carpeta de logs, incluidas las capturas gráficas, en un archivo comprimido .tar.zst. Mantén Jadyx en la biblioteca.',
+ title:'Logs y capturas',help:'Descarga toda la carpeta de logs, incluidas las capturas gráficas, en un archivo comprimido .tar.zst. Mantén Dyer Play en la biblioteca.',
  download:'Comprimir y descargar logs',cancel:'Cancelar',save:'Guardar archivo',scanning:'Preparando archivos…',compressing:'Comprimiendo y enviando',ready:'Archivo listo. Si no empieza la descarga, pulsa Guardar archivo.',cancelled:'Compresión cancelada.',failed:'No se pudieron preparar los logs. Los originales se conservan.',space:'No hay espacio libre suficiente para preparar el archivo.',read:'Un archivo de log cambió o no se pudo leer. Vuelve a intentarlo.',saving:'Iniciando descarga…'}:{
- title:'Logs and captures',help:'Download the entire log folder, including graphics captures, as a compressed .tar.zst file. Keep Jadyx in the library.',
+ title:'Logs and captures',help:'Download the entire log folder, including graphics captures, as a compressed .tar.zst file. Keep Dyer Play in the library.',
  download:'Compress and download logs',cancel:'Cancel',save:'Save file',scanning:'Preparing files…',compressing:'Compressing and sending',ready:'Archive ready. If downloading does not start, click Save file.',cancelled:'Compression cancelled.',failed:'Could not prepare logs. Original files were preserved.',space:'Not enough free space to prepare the archive.',read:'A log file changed or could not be read. Try again.',saving:'Starting download…'};
 $('logs-title').textContent=logWords.title;$('logs-help').textContent=logWords.help;
 $('logs-download').textContent=logWords.download;$('logs-cancel').textContent=logWords.cancel;
@@ -751,32 +751,32 @@ $('logs-cancel').addEventListener('click',async()=>{
  catch{$('logs-status').textContent=logWords.failed;}
 });
 
-// Guided app update: while Jadyx offers one, the page opens on its steps. The ticket is fetched
+// Guided app update: while Dyer Play offers one, the page opens on its steps. The ticket is fetched
 // ahead of the click (it lives two minutes and serves once) so the download and the Device Portal
 // tab both start inside the click, where browsers still allow opening a tab.
-const uw=pt?{kicker:'Atualização do Jadyx',title:'Atualizar Jadyx',preparing:'Preparando o pacote verificado…',verified:'Assinatura verificada',
+const uw=pt?{kicker:'Atualização do Dyer Play',title:'Atualizar Dyer Play',preparing:'Preparando o pacote verificado…',verified:'Assinatura verificada',
  s1:'Conecte o navegador',s1b:'Feito: este navegador está conectado ao console.',s2:'Baixe e instale',s2b:'O pacote é baixado e o Xbox Device Portal se abre em outra aba.',
  go:'Baixar e instalar',again:'Baixar de novo',s3:'Conclua no Device Portal',
  s3b:'Se aparecer um aviso de certificado, escolha Avançado → Continuar. Depois Add → escolha o arquivo baixado → Next → Install.',portal:'Abrir Device Portal',
- keep:'Não desinstale o Jadyx: isso apaga seus saves e configurações. Instale por cima.',skip:'Ir para o conteúdo',
- installing:'Instalando a atualização',installingb:'O Jadyx fechou para ser instalado. Quando o Device Portal terminar, abra-o no console: ele confirmará a nova versão.',
- reconnect:'Conectar de novo',banner:'Atualização do Jadyx pronta',bannerb:'Instale-a por cima pelo Xbox Device Portal.',open:'Ver passos',
+ keep:'Não desinstale o Dyer Play: isso apaga seus saves e configurações. Instale por cima.',skip:'Ir para o conteúdo',
+ installing:'Instalando a atualização',installingb:'O Dyer Play fechou para ser instalado. Quando o Device Portal terminar, abra-o no console: ele confirmará a nova versão.',
+ reconnect:'Conectar de novo',banner:'Atualização do Dyer Play pronta',bannerb:'Instale-a por cima pelo Xbox Device Portal.',open:'Ver passos',
  busy:'Aguarde o fim das transferências ativas.',verify_in_app:'Abra Atualizações no console e verifique o pacote de novo.',failed:'Não foi possível preparar o pacote. Tente de novo.'}
-:es?{kicker:'Actualización de Jadyx',title:'Actualizar Jadyx',preparing:'Preparando el paquete verificado…',verified:'Firma verificada',
+:es?{kicker:'Actualización de Dyer Play',title:'Actualizar Dyer Play',preparing:'Preparando el paquete verificado…',verified:'Firma verificada',
  s1:'Conecta el navegador',s1b:'Hecho: este navegador está conectado a la consola.',s2:'Descarga e instala',s2b:'Se descarga el paquete y se abre Xbox Device Portal en otra pestaña.',
  go:'Descargar e instalar',again:'Descargar de nuevo',s3:'Termina en Device Portal',
  s3b:'Si avisa del certificado, elige Avanzado → Continuar. Luego Add → elige el archivo descargado → Next → Install.',portal:'Abrir Device Portal',
- keep:'No desinstales Jadyx: borraría tus partidas y ajustes. Instala encima.',skip:'Ir al contenido',
- installing:'Instalando la actualización',installingb:'Jadyx se cerró para instalarse. Cuando Device Portal termine, ábrelo en la consola: confirmará la versión nueva.',
- reconnect:'Conectar de nuevo',banner:'Actualización de Jadyx lista',bannerb:'Instálala encima desde Xbox Device Portal.',open:'Ver pasos',
+ keep:'No desinstales Dyer Play: borraría tus partidas y ajustes. Instala encima.',skip:'Ir al contenido',
+ installing:'Instalando la actualización',installingb:'Dyer Play se cerró para instalarse. Cuando Device Portal termine, ábrelo en la consola: confirmará la versión nueva.',
+ reconnect:'Conectar de nuevo',banner:'Actualización de Dyer Play lista',bannerb:'Instálala encima desde Xbox Device Portal.',open:'Ver pasos',
  busy:'Espera a que terminen las transferencias activas.',verify_in_app:'Abre Actualizaciones en la consola y vuelve a verificar el paquete.',failed:'No se pudo preparar el paquete. Inténtalo de nuevo.'}
-:{kicker:'Jadyx update',title:'Update Jadyx',preparing:'Preparing the verified package…',verified:'Signature verified',
+:{kicker:'Dyer Play update',title:'Update Dyer Play',preparing:'Preparing the verified package…',verified:'Signature verified',
  s1:'Connect the browser',s1b:'Done: this browser is connected to the console.',s2:'Download and install',s2b:'The package downloads and Xbox Device Portal opens in another tab.',
  go:'Download and install',again:'Download again',s3:'Finish in Device Portal',
  s3b:'If it warns about the certificate, choose Advanced → Continue. Then Add → choose the downloaded file → Next → Install.',portal:'Open Device Portal',
- keep:'Do not uninstall Jadyx: that deletes your saves and settings. Install over it.',skip:'Go to content',
- installing:'Installing the update',installingb:'Jadyx closed to be installed. When Device Portal finishes, open it on the console: it confirms the new version.',
- reconnect:'Connect again',banner:'Jadyx update ready',bannerb:'Install it over Jadyx from Xbox Device Portal.',open:'View steps',
+ keep:'Do not uninstall Dyer Play: that deletes your saves and settings. Install over it.',skip:'Go to content',
+ installing:'Installing the update',installingb:'Dyer Play closed to be installed. When Device Portal finishes, open it on the console: it confirms the new version.',
+ reconnect:'Connect again',banner:'Dyer Play update ready',bannerb:'Install it over Dyer Play from Xbox Device Portal.',open:'View steps',
  busy:'Wait for active transfers to finish.',verify_in_app:'Open Updates on the console and verify the package again.',failed:'Could not prepare the package. Try again.'};
 for(const [id,key]of [['update-kicker','kicker'],['update-title','title'],['update-verified','verified'],['update-s1','s1'],['update-s1b','s1b'],['update-s2','s2'],
  ['update-s2b','s2b'],['update-s3','s3'],['update-s3b','s3b'],['update-portal-label','portal'],['update-keep','keep'],['update-skip','skip'],
@@ -791,7 +791,7 @@ async function fetchTicket(){
   const data=await (await api('/api/v1/update/download',{method:'POST'})).json();
   // Keep the navigation same-origin even if a future server response is malformed.
   if(typeof data.download!=='string'||!/^\/api\/v1\/update\/package\?ticket=[0-9a-f]{64}$/.test(data.download)||
-     typeof data.filename!=='string'||!/^Jadyx_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+_x64\.appx$/.test(data.filename))throw Error('failed');
+     typeof data.filename!=='string'||!/^DyerPlay_[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+_x64\.appx$/.test(data.filename))throw Error('failed');
   ticket=release=data;ticketError='';
  }catch(error){ticket=null;ticketError=error.message==='lost'?'':(uw[error.message]||uw.failed);}
  finally{ticketAt=Date.now();ticketing=false;renderUpdate();}
@@ -803,7 +803,7 @@ function renderUpdate(){
  if(!offered)return;
  const age=Date.now()-ticketAt;
  if(session&&!updateGone&&!updateDismissed&&!ticketing&&(ticket?age>90000:age>(ticketError?5000:0)))fetchTicket();
- $('update-title').textContent=release?'Jadyx '+release.version:uw.title;
+ $('update-title').textContent=release?'Dyer Play '+release.version:uw.title;
  $('update-meta').textContent=ticketError&&!ticket?ticketError:release?release.filename+' · '+size(release.size):uw.preparing;
  $('update-badge').hidden=!release;
  $('update-go').disabled=!ticket;$('update-go').textContent=updateStarted?uw.again:uw.go;

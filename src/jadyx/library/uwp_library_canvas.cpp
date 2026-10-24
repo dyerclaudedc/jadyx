@@ -438,7 +438,7 @@ private:
         }
         const float total = cursor + SegmentInset - x;
         Round(x, y, total, height, height / 2, Palette::Graphite, 0.78f);
-        Outline(x + 0.5f, y + 0.5f, total - 1, height - 1, height / 2 - 0.5f, 0xffffff, focused ? 0.85f : 0.12f,
+        Outline(x + 0.5f, y + 0.5f, total - 1, height - 1, height / 2 - 0.5f, Palette::Hairline, focused ? 0.85f : 0.12f,
                 focused ? 1.5f : 1.0f);
         // The capsule between the two segments it is passing.
         const std::size_t from = std::min(static_cast<std::size_t>(std::max(slide, 0.0f)), places.size() - 1);
@@ -488,11 +488,11 @@ private:
         Type(name, TypeRole::LabelLarge, right, middle - 10, name_width, Palette::Text);
         right -= 10 + 30;
         Round(right, middle - 15, 30, 30, 15, Palette::Graphite);
-        Outline(right + 0.5f, middle - 14.5f, 29, 29, 14.5f, 0xffffff, 0.2f);
+        Outline(right + 0.5f, middle - 14.5f, 29, 29, 14.5f, Palette::Hairline, 0.2f);
         Type(Upper(name.substr(0, 1)), TypeRole::LabelLarge, right, middle - 10, 30, Palette::Text, 1,
              TextAlign::Center);
         right -= 16;
-        Round(right, middle - 11, 1, 22, 0, 0xffffff, 0.18f);
+        Round(right, middle - 11, 1, 22, 0, Palette::Hairline, 0.18f);
         wchar_t clock[32]{};
         if (GetTimeFormatEx(LOCALE_NAME_USER_DEFAULT, TIME_NOSECONDS, nullptr, nullptr, clock, 32) > 0) {
             const float clock_width = MeasureType(clock, TypeRole::LabelLarge) + 2;
@@ -831,7 +831,7 @@ private:
         const float top = y + (Tile - size) / 2 - 8 * amount;
         FocusGlow(left, top, size, size, 12, amount * alpha);
         Round(left, top, size, size, 12, Palette::Graphite, 0.55f * alpha);
-        Outline(left + 0.5f, top + 0.5f, size - 1, size - 1, 11.5f, 0xffffff, 0.16f * alpha);
+        Outline(left + 0.5f, top + 0.5f, size - 1, size - 1, 11.5f, Palette::Hairline, 0.16f * alpha);
         const float cx = left + size / 2, cy = top + size / 2 - 8;
         Round(cx - 14, cy - 1.5f, 28, 3, 1.5f, Palette::Text, alpha);
         Round(cx - 1.5f, cy - 14, 3, 28, 1.5f, Palette::Text, alpha);
@@ -1000,7 +1000,7 @@ private:
         }
         auto path = [&](size_t i, unsigned color) {
             brush->SetColor(D2D1::ColorF(color)); target->FillGeometry(controller_paths[i].Get(), brush.Get());
-            brush->SetColor(D2D1::ColorF(0x45484d)); target->DrawGeometry(controller_paths[i].Get(), brush.Get(), 1.2f);
+            brush->SetColor(D2D1::ColorF(Palette::TextSecondary)); target->DrawGeometry(controller_paths[i].Get(), brush.Get(), 1.2f);
         };
         const size_t action = editor.selected;
         path(1, Palette::Graphite); path(2, Palette::Graphite); path(0, Palette::Graphite);
@@ -1008,7 +1008,7 @@ private:
         auto circle = [&](float x, float y, float radius, const wchar_t* label, bool active, float font = 16) {
             const auto shape = D2D1::Ellipse(D2D1::Point2F(x, y), radius, radius);
             brush->SetColor(D2D1::ColorF(active ? Palette::Accent : Palette::Row)); target->FillEllipse(shape, brush.Get());
-            brush->SetColor(D2D1::ColorF(active ? Palette::Text : 0x45484d)); target->DrawEllipse(shape, brush.Get(), 1.4f);
+            brush->SetColor(D2D1::ColorF(active ? Palette::Text : Palette::TextSecondary)); target->DrawEllipse(shape, brush.Get(), 1.4f);
             Text(label, x - radius, y - radius, font, active ? Palette::OnAccent : Palette::TextHint,
                  radius * 2, radius * 2, true, false, true);
         };
@@ -1365,7 +1365,7 @@ private:
             const bool chosen = i == category;
             if (chosen && !in_pane) {
                 FocusGlow(x, y, w, h, 14, 1);
-                Round(x, y, w, h, 14, 0x333537);
+                Round(x, y, w, h, 14, Palette::RowActive);
             } else if (chosen) {
                 Round(x, y, w, h, 14, Palette::RowActive, 0.9f);
             }
@@ -1394,7 +1394,7 @@ private:
             const float x = SettingsListX, w = SettingsListWidth;
             const float y = SettingsListTop + static_cast<float>(HomeRowCount) * SettingsListStride + 18;
             Round(x, y, w, 176, 18, Palette::Surface, 0.82f);
-            Outline(x + 0.5f, y + 0.5f, w - 1, 175, 18, 0xffffff, 0.06f);
+            Outline(x + 0.5f, y + 0.5f, w - 1, 175, 18, Palette::Hairline, 0.06f);
             Type(Tr(T::EmulatorData), TypeRole::Caps, x + 20, y + 20, 200, Palette::TextSecondary);
             const auto keys = Tr(status.keys_ready ? T::KeysReady : T::KeysMissing);
             const float chip = MeasureType(keys, TypeRole::Label) + 24;
@@ -1426,7 +1426,7 @@ private:
         const std::size_t first = selected != SIZE_MAX && selected >= visible ? selected - visible + 1 : 0;
         const float card_h = visible * SettingsRowStride - (SettingsRowStride - SettingsRowHeight) + 24;
         Round(px, SettingsRowsTop - 12, pw, card_h, 18, Palette::Surface, 0.82f);
-        Outline(px + 0.5f, SettingsRowsTop - 11.5f, pw - 1, card_h - 1, 18, 0xffffff, 0.06f);
+        Outline(px + 0.5f, SettingsRowsTop - 11.5f, pw - 1, card_h - 1, 18, Palette::Hairline, 0.06f);
         for (std::size_t i = first; i < first + visible; ++i) {
             const float y = SettingsRowsTop + (i - first) * SettingsRowStride;
             DrawSettingsRow(rows[i], px + 12, y, pw - 24, SettingsRowHeight, i == selected, in_pane ? 1.0f : 0.75f);
@@ -1438,7 +1438,7 @@ private:
         using Kind = SettingsRow::Kind;
         if (focused) {
             FocusGlow(x, y, w, h, 12, 1);
-            Round(x, y, w, h, 12, 0x333537);
+            Round(x, y, w, h, 12, Palette::RowActive);
         } else {
             Round(x, y, w, h, 12, Palette::Canvas, 0.55f);
         }
@@ -1583,7 +1583,7 @@ private:
         if (action == Navigation::Explore) {
             // The d-pad (the arrow keys on a keyboard): a cross in the badge.
             Round(x, y + 5, 22, 22, 11, Palette::Graphite);
-            Outline(x + 0.5f, y + 5.5f, 21, 21, 10.5f, 0xffffff, 0.15f);
+            Outline(x + 0.5f, y + 5.5f, 21, 21, 10.5f, Palette::Hairline, 0.15f);
             Round(x + 9, y + 10, 4, 12, 1, Palette::Text);
             Round(x + 5, y + 14, 12, 4, 1, Palette::Text);
             return 30 + PromptLabel(label, x + 30, y) + 28;
@@ -1873,7 +1873,7 @@ private:
             target->DrawBitmap(bitmap, D2D1::RectF(x, y, x + size, y + size), 1, D2D1_INTERPOLATION_MODE_LINEAR);
             target->PopLayer();
         } else {
-            Outline(x + 0.5f, y + 0.5f, size - 1, size - 1, 11.5f, 0xffffff, 0.08f * alpha);
+            Outline(x + 0.5f, y + 0.5f, size - 1, size - 1, 11.5f, Palette::Hairline, 0.08f * alpha);
             const auto extension = entry.relative_path.extension().wstring();
             if (extension.size() > 1)
                 Type(Upper(std::wstring_view{extension}.substr(1)), TypeRole::Caps, x, y + size / 2 - 8, size,
@@ -1995,8 +1995,10 @@ private:
                 target->DrawBitmap(bitmap, glow, opacity * shine, D2D1_INTERPOLATION_MODE_LINEAR);
             }
         };
-        layer(backdrop_before, BackdropOpacity * (1 - t));
-        layer(backdrop_now, BackdropOpacity * t);
+        // On the paper theme the art is only a tint behind the cream; over the dark one it leads.
+        const float opacity = BackdropOpacity * (Theme::dark ? 1.0f : 0.35f);
+        layer(backdrop_before, opacity * (1 - t));
+        layer(backdrop_now, opacity * t);
         if (!scrims[0]) MakeScrims();
         for (const auto& scrim : scrims)
             if (scrim) target->FillRectangle(D2D1::RectF(0, 0, 1280, 720), scrim.Get());

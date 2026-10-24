@@ -19,8 +19,8 @@ def rejects(version, manifest, releases):
     return False
 
 
-manifest_text = '﻿<?xml version="1.0"?>\n<Package>\n  <Identity Name="Jadyx"\n' \
-    '            Publisher="CN=JadyxDev"\n            Version="0.2.99.4"\n' \
+manifest_text = '﻿<?xml version="1.0"?>\n<Package>\n  <Identity Name="DyerPlay"\n' \
+    '            Publisher="CN=DyerPlay"\n            Version="0.2.99.4"\n' \
     '            ProcessorArchitecture="x64" />\n</Package>\n'
 with tempfile.TemporaryDirectory() as directory:
     manifest = Path(directory) / "AppxManifest.xml"

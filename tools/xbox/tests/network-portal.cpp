@@ -122,7 +122,7 @@ int main(int argc,char** argv) {
         auto result=client.Post("/api/v1/update/download",authenticated,"{}","application/json");
         Check(Status(result)==200,"grant verified update");
         const auto object=Json::parse(result->body);
-        Check(object.at("filename")=="Jadyx_0.3.6.0_x64.appx","versioned update filename");
+        Check(object.at("filename")=="DyerPlay_0.3.6.0_x64.appx","versioned update filename");
         return object.at("download").get<std::string>();
     };
     auto ticket=grant();

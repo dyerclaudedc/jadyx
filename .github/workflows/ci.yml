@@ -8,7 +8,13 @@
 
 name: CI
 
+# Dyer Play: every push to a dyer-play/* branch also builds and, when the signing secrets are set,
+# packs a signed test appx (the "jadyx-package" artifact of the run). Without the secrets the run
+# still builds and only warns that the package was skipped.
 on:
+  push:
+    branches: ["dyer-play/**"]
+    paths-ignore: ["docs/**", "**/*.md"]
   pull_request:
     paths-ignore: ["docs/**", "**/*.md"]
   workflow_dispatch:
@@ -36,5 +42,6 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
     with:
-      package: ${{ github.event_name == 'workflow_dispatch' && inputs.package }}
+      package: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.package) }}
+      optional_signing: ${{ github.event_name == 'push' }}
     secrets: inherit

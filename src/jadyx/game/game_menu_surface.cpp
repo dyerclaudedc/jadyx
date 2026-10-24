@@ -354,7 +354,7 @@ struct GameMenuSurface::Impl : UiPainter {
         Type(renderer, TypeRole::LabelLarge, x + 38 + clock_width + 25, S::Pill + 6, renderer_width + 2,
              Palette::TextSecondary);
 
-        std::wstring caption = L"Jadyx";
+        std::wstring caption = L"Dyer Play";
         if (!version_text.empty()) caption += L" " + version_text;
         Type(Upper(caption + L" · Direct3D 12"), TypeRole::Caps, S::Left, S::Caption + 8, 480,
              Palette::TextSecondary);
@@ -647,6 +647,7 @@ void GameMenuSurface::SetBackdrop(const D3D12::MenuImage& frame) { impl->SetBack
 
 D3D12::MenuImage GameMenuSurface::DrawMenu(const GameMenu& menu, const GameMenuScene& scene,
                                           std::pair<u32, u32> screen) {
+    const Theme::DarkScope dark; // drawn over the game: the dark glass theme
     // The display page shows the game sharp: its settings change the very image behind it.
     const bool sharp = menu.CurrentPage() == GameMenu::Page::Display;
     return impl->RenderScreen(screen, sharp, [&] { impl->DrawMenu(menu, scene); });
@@ -654,11 +655,13 @@ D3D12::MenuImage GameMenuSurface::DrawMenu(const GameMenu& menu, const GameMenuS
 
 D3D12::MenuImage GameMenuSurface::DrawCheats(const Cheats::CheatsView& view, const GameMenuScene& scene,
                                             std::pair<u32, u32> screen) {
+    const Theme::DarkScope dark;
     return impl->RenderScreen(screen, false, [&] { impl->DrawCheats(view, scene); });
 }
 
 D3D12::MenuImage GameMenuSurface::DrawKeyboard(const TextEntryPanelView& view, bool can_cancel,
                                               std::pair<u32, u32> screen) {
+    const Theme::DarkScope dark;
     using K = TextEntryPanelLayout;
     return impl->Render(K::Width, K::Height, screen, [&] { impl->DrawKeyboard(view, can_cancel); });
 }

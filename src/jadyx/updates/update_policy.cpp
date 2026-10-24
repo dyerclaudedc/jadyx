@@ -130,8 +130,8 @@ std::optional<Release> VerifyManifest(std::string_view body, std::string_view si
         if (!j.at("schema").is_number_integer() || j.at("schema") != 1 ||
             !j.at("size").is_number_unsigned() || !version || *version <= installed ||
             (ch != "stable" && ch != "preview") || (channel == Channel::Stable && ch != "stable") ||
-            j.at("identity").at("name") != "Jadyx" ||
-            j.at("identity").at("publisher") != "CN=JadyxDev" ||
+            j.at("identity").at("name") != "DyerPlay" ||
+            j.at("identity").at("publisher") != "CN=DyerPlay" ||
             j.at("identity").at("architecture") != "x64" || j.at("diagnostic") != false ||
             j.at("min_os") != "10.0.17763.0" || j.at("vclibs_min") != "14.0.33519.0")
             return {};
@@ -147,8 +147,8 @@ std::optional<Release> VerifyManifest(std::string_view body, std::string_view si
         // Exact asset binding prevents cross-repository URLs, path/query tricks and asset
         // substitution.
         if (release.tag != "v" + FormatVersion(*version) ||
-            release.url != "https://github.com/JulianDr14/jadyx/releases/download/" + release.tag +
-                               "/Jadyx_" + FormatVersion(*version) + "_x64.appx" ||
+            release.url != "https://github.com/dyerclaudedc/jadyx/releases/download/" + release.tag +
+                               "/DyerPlay_" + FormatVersion(*version) + "_x64.appx" ||
             release.size == 0 || release.size > (4ull << 30) || release.notes.size() > 16384 ||
             release.published.size() > 64 || release.sha256.size() != 64 ||
             !std::all_of(release.sha256.begin(), release.sha256.end(),

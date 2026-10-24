@@ -43,14 +43,14 @@ struct Fixture {
         {"tag", "v" + v},
         {"channel", preview ? "preview" : "stable"},
         {"identity",
-         {{"name", "Jadyx"},
-          {"publisher", "CN=JadyxDev"},
+         {{"name", "DyerPlay"},
+          {"publisher", "CN=DyerPlay"},
           {"architecture", "x64"}}},
         {"diagnostic", false},
         {"min_os", "10.0.17763.0"},
         {"vclibs_min", "14.0.33519.0"},
-        {"url", "https://github.com/JulianDr14/jadyx/releases/download/v" + v +
-                    "/Jadyx_" + v + "_x64.appx"},
+        {"url", "https://github.com/dyerclaudedc/jadyx/releases/download/v" + v +
+                    "/DyerPlay_" + v + "_x64.appx"},
         {"size", 8},
         {"sha256", std::string(64, 'a')},
         {"notes", "test"},
@@ -73,7 +73,7 @@ struct Fixture {
         if (not_modified)
           return Jadyx::Http::Response{304};
         const std::string base =
-            "https://github.com/JulianDr14/jadyx/releases/download/" +
+            "https://github.com/dyerclaudedc/jadyx/releases/download/" +
             manifest.at("tag").get<std::string>() + "/";
         Json assets =
             Json::array({{{"name", "update.json"},

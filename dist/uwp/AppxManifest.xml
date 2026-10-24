@@ -15,14 +15,14 @@
     xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
     IgnorableNamespaces="uap rescap">
 
-  <Identity Name="Jadyx"
-            Publisher="CN=JadyxDev"
+  <Identity Name="DyerPlay"
+            Publisher="CN=DyerPlay"
             Version="0.3.8.5"
             ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>Jadyx</DisplayName>
-    <PublisherDisplayName>Jadyx</PublisherDisplayName>
+    <DisplayName>Dyer Play</DisplayName>
+    <PublisherDisplayName>Dyer Play</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -52,14 +52,14 @@
          uwp_boot.cpp) is the conventional "<exe>.App" moniker; there is no activatable class. -->
     <Application Id="App" Executable="jadyx.exe" EntryPoint="Jadyx.App">
       <uap:VisualElements
-          DisplayName="Jadyx"
-          Description="Jadyx: a Nintendo Switch emulator for Xbox Series X|S Dev Mode, based on Eden."
-          BackgroundColor="#1C1C1C"
+          DisplayName="Dyer Play"
+          Description="Dyer Play: a Nintendo Switch emulator tuned for Xbox Series S Dev Mode, based on Jadyx and Eden."
+          BackgroundColor="#F5F2ED"
           Square150x150Logo="Assets\Square150x150Logo.png"
           Square44x44Logo="Assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
         <!-- The splash art is transparent: this colour fills the whole screen behind it. -->
-        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#000000" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" BackgroundColor="#F5F2ED" />
       </uap:VisualElements>
     </Application>
   </Applications>
@@ -73,7 +73,7 @@
     <Capability Name="internetClient" />
     <!-- User-started library portal: receive HTTP connections from the local network. -->
     <Capability Name="privateNetworkClientServer" />
-    <!-- Native self-update of the installed Jadyx package in Xbox Developer Mode. -->
+    <!-- Native self-update of the installed Dyer Play package in Xbox Developer Mode. -->
     <rescap:Capability Name="packageManagement" />
     <!-- PC Nintendo Pro USB transport; joystick usage is allowed by UWP HID. -->
     <DeviceCapability Name="humanInterfaceDevice" />

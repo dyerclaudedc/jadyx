@@ -3,7 +3,7 @@
 """Local stand-in for the GitHub releases a test package with update_server= asks for.
 
 Each subfolder of ROOT is one release, named by its tag (v0.3.7.2) and holding
-Jadyx_<version>_x64.appx plus the update.json/update.sig that create-update.ps1 signed.
+DyerPlay_<version>_x64.appx plus the update.json/update.sig that create-update.ps1 signed.
 An optional notes.md becomes the release body.
 
     py tools/xbox/tests/update-server.py ROOT [--port 8787]
@@ -15,7 +15,7 @@ import json
 import pathlib
 import re
 
-REPO = "https://github.com/JulianDr14/jadyx/releases/download/"
+REPO = "https://github.com/dyerclaudedc/jadyx/releases/download/"
 
 
 def releases(root):

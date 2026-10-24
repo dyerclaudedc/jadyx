@@ -87,6 +87,7 @@
 #include "video_core/renderer_d3d12/d3d12_pipeline_key_mode.h"
 
 #include "jadyx/app/alloc_watch.h"
+#include "jadyx/app/console_model.h"
 #include "jadyx/cheats/cheat_session.h"
 #include "jadyx/cheats/cheats_page.h"
 #include "jadyx/cheats/cheats_view.h"
@@ -219,13 +220,16 @@ static void ApplyHeadlessBootSettings(const BootSurface& surface) {
     // The on-console failure mode is a hard crash with no jadyx_log.txt; the default 4 KiB write
     // buffering loses exactly the lines that say where it died. Flush every line instead.
     Settings::values.log_flush_line = true;
-    // Player 1 is bound to the virtual_gamepad engine (uwp_input.h) and presented to the game as
-    // the controller chosen in the library (a Pro Controller unless told otherwise).
-    ApplyControllerStyleSettings(LoadControllerOptions().style);
     // Language and region from Settings > System, or from Windows (the console's own) when they
     // follow the system; once the game is loaded, ApplyGameLanguage narrows the language to what
-    // it ships. Also sets the interface language for the in-game menu.
+    // it ships. Also sets the interface language for the in-game menu and the performance mode
+    // (docked or handheld).
     ApplySystemSettings();
+    // Player 1 is bound to the virtual_gamepad engine (uwp_input.h) and presented to the game as
+    // the controller chosen in the library (a Pro Controller unless told otherwise). After the
+    // system settings: a handheld controller style makes the console undocked whatever the
+    // performance mode says.
+    ApplyControllerStyleSettings(LoadControllerOptions().style);
     // memory_layout_mode stays at its default until the Series-S budget is measured on-console; the
     // DRAM clamp is a separate reservation follow-up, not here.
 }
@@ -430,6 +434,7 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
     WriteDiag("step: timer resolution " +
               std::to_string(std::chrono::duration<double, std::milli>(timer_resolution).count()) +
               " ms");
+    WriteDiag("step: device " + std::string(Jadyx::ConsoleModelName(Jadyx::DetectConsoleModel())));
     ApplyHeadlessBootSettings(config.null_renderer ? BootSurface{} : surface);
     if (config.null_audio) {
         Settings::values.sink_id = Settings::AudioEngine::Null;
