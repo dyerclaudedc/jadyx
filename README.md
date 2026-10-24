@@ -3,6 +3,32 @@ SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
+# Dyer Play
+
+**Dyer Play** é uma versão do [Jadyx](https://github.com/JulianDr14/jadyx) (port do Eden para Xbox
+Series X|S em Dev Mode, com renderizador Direct3D 12 nativo) ajustada para o **Xbox Series S** e com
+a identidade visual Dyer Play. Todo o trabalho do Jadyx, do Eden e dos projetos de onde ele vem
+continua creditado abaixo; a licença é a mesma, GPL-3.0-or-later.
+
+O que esta versão muda:
+
+- **Series S**: detecta o console e apresenta em 2560×1440, o tamanho que a Microsoft recomenda
+  para o Series S (`output=` no `boot.cfg` muda isso).
+- **Modo de desempenho**: em Configurações → Sistema, TV (1080p) ou Portátil (720p, mais leve para
+  a GPU e a memória); e um **Perfil** por jogo nas opções de cada jogo.
+- **Interface**: tema claro em papel, Inter Tight e IBM Plex Mono, foco em vermelho; o menu
+  durante o jogo fica escuro para não competir com a imagem.
+- **Aviso de modo App**: se o app estiver em modo App (cerca de 1 GB), a biblioteca explica como
+  trocar para Game.
+
+**Instalar**: cada push nas branches `dyer-play/*` gera, no GitHub Actions, o artefato
+`jadyx-package` com `DyerPlay_<versão>_x64.appx`, `DyerPlay.cer` e `Microsoft.VCLibs.x64.14.00.appx`.
+No Device Portal do console (`https://<ip-do-xbox>:11443`): **Add** → o `.appx`, o VCLibs como
+dependência e o `.cer` como certificado. Depois, no Dev Home: o app → **View details** →
+**App type: Game**. Chaves, firmware e jogos vêm do seu próprio Switch; nada disso acompanha o app.
+
+---
+
 <p align="center">
   <img src="dist/uwp/Assets/JadyxLogo.png" alt="Jadyx logo" width="128">
 </p>
