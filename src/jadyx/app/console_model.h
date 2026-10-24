@@ -71,4 +71,46 @@ inline constexpr std::uint32_t XboxSeriesXDevkit = 0xDE8A5661;
 /// Asked once, then cached: the answer cannot change while the app runs.
 [[nodiscard]] ConsoleModel DetectConsoleModel();
 
+/// The size of the swapchains (library and game), in pixels.
+struct OutputSize {
+    std::uint32_t width;
+    std::uint32_t height;
+    constexpr bool operator==(const OutputSize&) const = default;
+};
+
+/// `output=` in boot.cfg: automatic, or a fixed size for testing.
+enum class OutputPreference : std::uint8_t { Automatic, Window, P1080, P1440, P2160 };
+
+[[nodiscard]] constexpr OutputPreference ParseOutputPreference(std::string_view value) {
+    if (value == "window") return OutputPreference::Window;
+    if (value == "1080" || value == "1080p") return OutputPreference::P1080;
+    if (value == "1440" || value == "1440p") return OutputPreference::P1440;
+    if (value == "2160" || value == "2160p" || value == "4k") return OutputPreference::P2160;
+    return OutputPreference::Automatic;
+}
+
+/// What the app presents at. Microsoft recommends a 2560x1440 swapchain on the Series S, which
+/// outputs 1440p and scales it for any TV; the window there reports 1920x1080. The frame then gets
+/// to the TV through one scaler of our own (bilinear or FSR) instead of two, and FSR's 2x from a
+/// 720p (Handheld) game, or 1.33x from a 1080p one, sits inside the range it is made for. Every
+/// other machine keeps its window size, as before.
+[[nodiscard]] constexpr OutputSize ChooseOutputSize(ConsoleModel model, OutputSize window,
+                                                    OutputPreference preference) {
+    switch (preference) {
+    case OutputPreference::Window: return window;
+    case OutputPreference::P1080:  return {1920, 1080};
+    case OutputPreference::P1440:  return {2560, 1440};
+    case OutputPreference::P2160:  return {3840, 2160};
+    case OutputPreference::Automatic: break;
+    }
+    if (model == ConsoleModel::XboxSeriesS) return {2560, 1440};
+    return window;
+}
+
+/// The `output=` preference read from boot.cfg at startup, kept for the rest of the run.
+void SetOutputPreference(OutputPreference preference);
+/// ChooseOutputSize for this machine and that preference: what a swapchain for a window of this
+/// size should be (the library calls it again when the window is resized).
+[[nodiscard]] OutputSize OutputSizeForWindow(OutputSize window);
+
 } // namespace Jadyx

@@ -209,9 +209,12 @@ std::optional<std::string> ShowGameLibrary(void* core_window, unsigned width, un
     bool resize = false, window_closed = false;
     auto size_changed = window.SizeChanged(winrt::auto_revoke, [&](auto&&, WindowSizeChangedEventArgs const& e) {
         const auto scale = winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView().RawPixelsPerViewPixel();
-        width = std::max(1U, static_cast<unsigned>(e.Size().Width * scale));
-        height = std::max(1U, static_cast<unsigned>(e.Size().Height * scale));
-        resize = true;
+        // The Series S keeps its 1440p swapchain whatever the window says (console_model.h).
+        const auto output = OutputSizeForWindow({std::max(1U, static_cast<unsigned>(e.Size().Width * scale)),
+                                                 std::max(1U, static_cast<unsigned>(e.Size().Height * scale))});
+        resize = resize || output.width != width || output.height != height;
+        width = output.width;
+        height = output.height;
     });
     auto closed = window.Closed(winrt::auto_revoke, [&](auto&&, CoreWindowEventArgs const&) { window_closed = true; });
     auto visible = window.VisibilityChanged(winrt::auto_revoke, [&](auto&&, VisibilityChangedEventArgs const&) { dirty = true; });

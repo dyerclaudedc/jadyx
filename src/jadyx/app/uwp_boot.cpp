@@ -2433,6 +2433,25 @@ struct BootView : implements<BootView, IFrameworkViewSource, IFrameworkView> {
             } catch (...) {
                 WriteDiag("could not read the window size, assuming 1920x1080");
             }
+            // The Series S presents at 1440p (console_model.h); `output=` in boot.cfg overrides it.
+            auto preference = Jadyx::OutputPreference::Automatic;
+            try {
+                const auto install = std::filesystem::path{
+                    Windows::ApplicationModel::Package::Current().InstalledLocation().Path().c_str()};
+                std::ifstream cfg{install / L"boot.cfg"};
+                for (std::string line; std::getline(cfg, line);) {
+                    if (!line.empty() && line.back() == '\r') line.pop_back();
+                    if (line.starts_with("output=")) preference = Jadyx::ParseOutputPreference(line.substr(7));
+                }
+            } catch (...) { /* No package or no boot.cfg: automatic. */ }
+            Jadyx::SetOutputPreference(preference);
+            const auto model = Jadyx::DetectConsoleModel();
+            const auto output = Jadyx::OutputSizeForWindow({surface.width, surface.height});
+            WriteDiag("output: " + std::string(Jadyx::ConsoleModelName(model)) + ", window " +
+                      std::to_string(surface.width) + "x" + std::to_string(surface.height) +
+                      ", swapchain " + std::to_string(output.width) + "x" + std::to_string(output.height));
+            surface.width = output.width;
+            surface.height = output.height;
         }
 
         // "Back to the library" in the in-game menu shuts the game down inside this process and
