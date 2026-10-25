@@ -1229,6 +1229,7 @@ private:
                 case SystemPage::AdultMods: item.kind = Kind::Toggle; item.on = settings.show_adult_mods; break;
                 case SystemPage::PerformanceStats: item.kind = Kind::Toggle; item.on = settings.show_performance_stats; break;
                 case SystemPage::DrawOptimizations: item.kind = Kind::Toggle; item.on = settings.draw_optimizations; break;
+                case SystemPage::AsyncShaders: item.kind = Kind::Toggle; item.on = settings.async_shaders; break;
                 case SystemPage::PerformanceDiagnostics: item.kind = Kind::Toggle; item.on = settings.performance_diagnostics; break;
                 case SystemPage::PulseSessions: item.kind = Kind::Toggle; item.on = settings.pulse_sessions; break;
                 case SystemPage::PlayTime: item.kind = Kind::Toggle; item.on = settings.track_play_time; break;

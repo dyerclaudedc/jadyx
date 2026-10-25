@@ -44,6 +44,9 @@ struct SystemSettings {
     /// copies, sampler reuse within a draw and the previous draw's pipeline while its key's
     /// registers did not change. Off restores the plain path, in case a game draws wrongly.
     bool draw_optimizations{true};
+    /// Draws whose pipeline is still compiling are skipped instead of waited for: far fewer
+    /// stutters the first time something appears, at the cost of it showing a few frames late.
+    bool async_shaders{true};
     /// Per-draw CPU timers and their report in the log (costs a little; for diagnosing).
     bool performance_diagnostics{};
 

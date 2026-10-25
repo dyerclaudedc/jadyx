@@ -152,6 +152,7 @@ void SetGpuBreadcrumbsEnabled(bool enabled); // d3d12_device.h
 void SetCloseProbeEnabled(bool enabled);     // d3d12_device.h
 void SetPipelineEviction(bool enabled);      // d3d12_pipeline_cache.h
 void SetPipelinePrewarm(bool enabled);       // d3d12_pipeline_cache.h
+void SetSkipPendingDraws(bool enabled);      // d3d12_pipeline_cache.h
 void SetDescriptorRemovalChecks(bool enabled); // d3d12_device.h
 void SetUniformUploadCopy(bool enabled);
 void SetDrawSamplerReuse(bool enabled);
@@ -559,7 +560,9 @@ int RunHeadlessBoot(const std::string& launch_path, const BootSurface& surface,
     D3D12::PipelineKeyTracking::SetMode(key_mode);
     D3D12::SetUniformUploadCopy(config.upload_copy || draw_optimizations);
     D3D12::SetDrawSamplerReuse(config.draw_sampler_reuse || draw_optimizations);
+    D3D12::SetSkipPendingDraws(system_settings.async_shaders);
     WriteDiag(std::string("step: draw optimizations ") + (draw_optimizations ? "on" : "off") +
+              (system_settings.async_shaders ? ", asynchronous shaders" : "") +
               (gpu_profile ? ", per-draw diagnostics on" : ""));
     D3D12::SetPixelShaderScratchMode(static_cast<D3D12::PixelShaderScratchMode>(config.ps_scratch));
     if (config.debug_layer) {

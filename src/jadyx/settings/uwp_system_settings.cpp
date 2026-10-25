@@ -26,6 +26,7 @@ constexpr auto UpscalingKey = L"system_upscaling";
 constexpr auto ConsoleModeKey = L"system_console_mode";
 constexpr auto DrawOptimizationsKey = L"system_draw_optimizations";
 constexpr auto DiagnosticsKey = L"system_performance_diagnostics";
+constexpr auto AsyncShadersKey = L"system_async_shaders";
 
 /// Saved as the enum's value, or -1 for "follow the system". A value that is not a selectable
 /// option (an older or newer build's) also falls back to the system.
@@ -66,6 +67,8 @@ SystemSettings LoadSystemSettings() {
         settings.console_mode = LoadChoice(values, ConsoleModeKey, SelectableConsoleModes());
         if (values.HasKey(DrawOptimizationsKey))
             settings.draw_optimizations = winrt::unbox_value<bool>(values.Lookup(DrawOptimizationsKey));
+        if (values.HasKey(AsyncShadersKey))
+            settings.async_shaders = winrt::unbox_value<bool>(values.Lookup(AsyncShadersKey));
         if (values.HasKey(DiagnosticsKey))
             settings.performance_diagnostics = winrt::unbox_value<bool>(values.Lookup(DiagnosticsKey));
         if (values.HasKey(UpscalingKey))
@@ -91,6 +94,7 @@ bool SaveSystemSettings(const SystemSettings& settings) {
         values.Insert(ConsoleModeKey, winrt::box_value(ChoiceValue(settings.console_mode)));
         values.Insert(DrawOptimizationsKey, winrt::box_value(settings.draw_optimizations));
         values.Insert(DiagnosticsKey, winrt::box_value(settings.performance_diagnostics));
+        values.Insert(AsyncShadersKey, winrt::box_value(settings.async_shaders));
         return true;
     } catch (...) { return false; }
 }

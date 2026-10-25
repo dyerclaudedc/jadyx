@@ -913,6 +913,16 @@ GraphicsPipeline* PipelineCache::CurrentGraphicsPipelineSlowPath() {
     return BuiltPipeline(current_pipeline);
 }
 
+namespace {
+std::atomic_bool skip_pending_draws{};
+}
+void SetSkipPendingDraws(bool enabled) {
+    skip_pending_draws.store(enabled, std::memory_order_relaxed);
+}
+bool SkipPendingDrawsEnabled() {
+    return skip_pending_draws.load(std::memory_order_relaxed);
+}
+
 GraphicsPipeline* PipelineCache::BuiltPipeline(GraphicsPipeline* pipeline) {
     pipeline->Touch(residency_frame);
     if (pipeline->MarkDrawn()) {
@@ -934,6 +944,15 @@ GraphicsPipeline* PipelineCache::BuiltPipeline(GraphicsPipeline* pipeline) {
     const PipelineStage cause = pipeline->WasEvicted() ? PipelineStage::WaitEvicted
                                 : pipeline->FromDisk() ? PipelineStage::WaitDormant
                                                        : PipelineStage::WaitNew;
+    if (skip_pending_draws.load(std::memory_order_relaxed)) {
+        // Asynchronous shaders: the build stays queued on the workers and this draw is lost, so
+        // the frame goes on instead of stalling on the driver's PSO creation.
+        ++draws_skipped_pending;
+        if (draws_skipped_pending == 1 || draws_skipped_pending % 4096 == 0)
+            LOG_INFO(Render, "D3D12: {} draws skipped while their pipelines were building",
+                     draws_skipped_pending);
+        return nullptr;
+    }
     const u64 wait_start = SteadyMicros();
     // A valid draw has no semantically equivalent substitute while its exact PSO is pending.
     // Compilation stays on workers, but readiness never discards guest work.

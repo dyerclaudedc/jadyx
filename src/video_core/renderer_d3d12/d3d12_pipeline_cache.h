@@ -100,6 +100,13 @@ struct ChargedDxilStages {
 /// The disk cache stores the guest environments, as Vulkan does, and rebuilds from them at boot:
 /// every pipeline's DXIL, but PSOs only for the ones drawn in recent sessions (HotPipelineSet).
 /// PSOs idle for long are released and built again when drawn (PipelineResidencyPolicy).
+/// Asynchronous shaders (Dyer Play): a draw whose PSO is still being built on a worker is skipped
+/// instead of waiting for it, as the older backends did with their asynchronous shaders. The game
+/// keeps running while the pipeline compiles; the object shows up a few frames later. Compute
+/// dispatches always wait. Off by default in Jadyx, where every draw waits.
+void SetSkipPendingDraws(bool enabled);
+[[nodiscard]] bool SkipPendingDrawsEnabled();
+
 class PipelineCache : public VideoCommon::ShaderCache {
 public:
     PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory, const Device& device,
@@ -220,6 +227,7 @@ private:
 
     // Last, so they are joined before the pipelines they build are destroyed.
     Common::ThreadWorker workers;
+    u64 draws_skipped_pending{}; ///< Asynchronous shaders (SetSkipPendingDraws), for the log.
     Common::ThreadWorker serialization_thread;
     /// One thread, low priority: the PSOs it builds are guesses, so it must not compete with the
     /// workers' or the guest's.

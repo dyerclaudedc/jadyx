@@ -110,6 +110,12 @@ int main() {
     check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
           page.settings.draw_optimizations);
     check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
+          page.selected == SystemPage::AsyncShaders && page.settings.async_shaders);
+    check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
+          !page.settings.async_shaders);
+    check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
+          page.settings.async_shaders);
+    check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
           page.selected == SystemPage::PerformanceDiagnostics && !page.settings.performance_diagnostics);
     check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
           page.settings.performance_diagnostics);

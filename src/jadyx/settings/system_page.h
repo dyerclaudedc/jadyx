@@ -18,7 +18,7 @@
 namespace Jadyx {
 
 struct SystemPage {
-    enum Row : std::size_t { UserName, InterfaceLanguage, GameLanguage, Region, PerformanceMode, DrawOptimizations, PerformanceDiagnostics, AdultMods, PerformanceStats, PulseSessions, PlayTime, MultipleControllers, MiiEditor, ClearCache, Updates, RowCount };
+    enum Row : std::size_t { UserName, InterfaceLanguage, GameLanguage, Region, PerformanceMode, DrawOptimizations, AsyncShaders, PerformanceDiagnostics, AdultMods, PerformanceStats, PulseSessions, PlayTime, MultipleControllers, MiiEditor, ClearCache, Updates, RowCount };
 
     bool updates_open{};
     std::size_t update_row{}, update_detail{}, update_scroll{};
@@ -99,6 +99,9 @@ inline SystemPageEffect HandleSystemInput(SystemPage& page, SystemInput input) {
     case Row::DrawOptimizations:
         settings.draw_optimizations = !settings.draw_optimizations;
         return SystemPageEffect::Changed;
+    case Row::AsyncShaders:
+        settings.async_shaders = !settings.async_shaders;
+        return SystemPageEffect::Changed;
     case Row::PerformanceDiagnostics:
         settings.performance_diagnostics = !settings.performance_diagnostics;
         return SystemPageEffect::Changed;
@@ -157,6 +160,7 @@ inline I18n::Text SystemRowTitle(SystemPage::Row row) {
     case SystemPage::Region:            return Text::ConsoleRegion;
     case SystemPage::PerformanceMode:   return Text::PerformanceMode;
     case SystemPage::DrawOptimizations: return Text::DrawOptimizations;
+    case SystemPage::AsyncShaders:      return Text::AsyncShaders;
     case SystemPage::PerformanceDiagnostics: return Text::PerformanceDiagnostics;
     case SystemPage::PerformanceStats:  return Text::PerformanceStats;
     case SystemPage::AdultMods:         return Text::ModsAdult;
@@ -178,6 +182,7 @@ inline I18n::Text SystemRowHint(SystemPage::Row row) {
     case SystemPage::Region:            return Text::ConsoleRegionHint;
     case SystemPage::PerformanceMode:   return Text::PerformanceModeHint;
     case SystemPage::DrawOptimizations: return Text::DrawOptimizationsHint;
+    case SystemPage::AsyncShaders:      return Text::AsyncShadersHint;
     case SystemPage::PerformanceDiagnostics: return Text::PerformanceDiagnosticsHint;
     case SystemPage::PerformanceStats:  return Text::PerformanceStatsHint;
     case SystemPage::AdultMods:         return Text::ModsAdultHint;
@@ -216,6 +221,8 @@ inline std::wstring SystemRowValue(const SystemPage& page, SystemPage::Row row) 
         return std::wstring{I18n::Tr(settings.show_performance_stats ? Text::Yes : Text::No)};
     case SystemPage::DrawOptimizations:
         return std::wstring{I18n::Tr(settings.draw_optimizations ? Text::Yes : Text::No)};
+    case SystemPage::AsyncShaders:
+        return std::wstring{I18n::Tr(settings.async_shaders ? Text::Yes : Text::No)};
     case SystemPage::PerformanceDiagnostics:
         return std::wstring{I18n::Tr(settings.performance_diagnostics ? Text::Yes : Text::No)};
     case SystemPage::AdultMods:

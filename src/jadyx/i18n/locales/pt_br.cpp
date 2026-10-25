@@ -668,6 +668,8 @@ const Catalog PortugueseBrazilCatalog = MakeCatalog({
     {Text::PerformanceModeHandheld, L"Portátil · 720p"},
     {Text::DrawOptimizations, L"Otimizações de desempenho"},
     {Text::DrawOptimizationsHint, L"Prepara os desenhos mais rápido. Desligue se um jogo aparecer com erros gráficos. Vale ao iniciar um jogo"},
+    {Text::AsyncShaders, L"Shaders assíncronos"},
+    {Text::AsyncShadersHint, L"Menos travadas quando algo novo aparece na tela; ele pode surgir alguns quadros depois. Vale ao iniciar um jogo"},
     {Text::PerformanceDiagnostics, L"Diagnóstico de desempenho"},
     {Text::PerformanceDiagnosticsHint, L"Registra os tempos de cada desenho nos logs, com um pequeno custo. Vale ao iniciar um jogo"},
     {Text::GameProfile, L"Perfil"},

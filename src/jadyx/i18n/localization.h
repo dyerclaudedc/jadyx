@@ -618,6 +618,8 @@ enum class Text : std::uint16_t {
     PerformanceModeHandheld,
     DrawOptimizations,
     DrawOptimizationsHint,
+    AsyncShaders,
+    AsyncShadersHint,
     PerformanceDiagnostics,
     PerformanceDiagnosticsHint,
     GameProfile,

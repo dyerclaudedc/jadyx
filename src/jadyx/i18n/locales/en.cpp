@@ -668,6 +668,8 @@ const Catalog EnglishCatalog = MakeCatalog({
     {Text::PerformanceModeHandheld, L"Handheld · 720p"},
     {Text::DrawOptimizations, L"Performance optimizations"},
     {Text::DrawOptimizationsHint, L"Faster draw preparation. Turn off if a game draws wrongly. Applies when a game starts"},
+    {Text::AsyncShaders, L"Asynchronous shaders"},
+    {Text::AsyncShadersHint, L"Fewer stutters when something new appears; it may show a few frames late. Applies when a game starts"},
     {Text::PerformanceDiagnostics, L"Performance diagnostics"},
     {Text::PerformanceDiagnosticsHint, L"Records per-draw timings in the logs, at a small cost. Applies when a game starts"},
     {Text::GameProfile, L"Profile"},
