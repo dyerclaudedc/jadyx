@@ -12,8 +12,9 @@ continua creditado abaixo; a licença é a mesma, GPL-3.0-or-later.
 
 O que esta versão muda:
 
-- **Series S**: detecta o console e apresenta em 2560×1440, o tamanho que a Microsoft recomenda
-  para o Series S (`output=` no `boot.cfg` muda isso).
+- **Series S**: detecta o console e registra o modelo no log. A saída fica no tamanho da janela
+  (1080p): em 1440p o swapchain do Series S travava um segundo de cada vez até a GPU ser
+  reiniciada (`output=1440p` no `boot.cfg` ainda força 1440p para testes).
 - **Modo de desempenho**: em Configurações → Sistema, TV (1080p) ou Portátil (720p, mais leve para
   a GPU e a memória); e um **Perfil** por jogo nas opções de cada jogo.
 - **Interface**: tema claro em papel, Inter Tight e IBM Plex Mono, foco em vermelho; o menu

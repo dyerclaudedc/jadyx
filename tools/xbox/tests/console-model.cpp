@@ -17,10 +17,9 @@ int main() {
     check(ConsoleModelFromIds(true, VendorMicrosoft, 0x12345678) == ConsoleModel::XboxUnknown);
     check(ConsoleModelFromIds(true, 0x1234, XboxSeriesS) == ConsoleModel::XboxUnknown);
     check(ConsoleModelName(ConsoleModel::XboxSeriesS) == "Xbox Series S");
-    // Output size: 1440p on the Series S, the window everywhere else, boot.cfg overrides both.
+    // Output size: the window everywhere (the Series S stalled at 1440p), boot.cfg overrides it.
     constexpr OutputSize window{1920, 1080};
-    static_assert(ChooseOutputSize(ConsoleModel::XboxSeriesS, window, OutputPreference::Automatic) ==
-                  OutputSize{2560, 1440});
+    static_assert(ChooseOutputSize(ConsoleModel::XboxSeriesS, window, OutputPreference::Automatic) == window);
     check(ChooseOutputSize(ConsoleModel::XboxSeriesX, window, OutputPreference::Automatic) == window);
     check(ChooseOutputSize(ConsoleModel::Pc, {1600, 900}, OutputPreference::Automatic) == OutputSize{1600, 900});
     check(ChooseOutputSize(ConsoleModel::XboxSeriesS, window, OutputPreference::Window) == window);

@@ -89,11 +89,11 @@ enum class OutputPreference : std::uint8_t { Automatic, Window, P1080, P1440, P2
     return OutputPreference::Automatic;
 }
 
-/// What the app presents at. Microsoft recommends a 2560x1440 swapchain on the Series S, which
-/// outputs 1440p and scales it for any TV; the window there reports 1920x1080. The frame then gets
-/// to the TV through one scaler of our own (bilinear or FSR) instead of two, and FSR's 2x from a
-/// 720p (Handheld) game, or 1.33x from a 1080p one, sits inside the range it is made for. Every
-/// other machine keeps its window size, as before.
+/// What the app presents at: the window's size everywhere, unless boot.cfg asks for another.
+/// A 2560x1440 swapchain on the Series S (which Microsoft documents as supported) stalled there:
+/// its frame-latency waitable went a second at a time without a frame, every couple of seconds,
+/// until the device was reset (Super Mario Bros. Wonder, 0.3.8.108/109). The window's 1920x1080
+/// is what Jadyx presents at and what the community reports on the Series S were played at.
 [[nodiscard]] constexpr OutputSize ChooseOutputSize(ConsoleModel model, OutputSize window,
                                                     OutputPreference preference) {
     switch (preference) {
@@ -103,7 +103,7 @@ enum class OutputPreference : std::uint8_t { Automatic, Window, P1080, P1440, P2
     case OutputPreference::P2160:  return {3840, 2160};
     case OutputPreference::Automatic: break;
     }
-    if (model == ConsoleModel::XboxSeriesS) return {2560, 1440};
+    (void)model;
     return window;
 }
 
