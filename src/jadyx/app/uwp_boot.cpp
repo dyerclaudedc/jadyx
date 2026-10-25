@@ -270,7 +270,8 @@ struct BootConfig {
     /// Per-core JIT code cache ("jit_cache_mib="). Full, it is cleared with all the blocks'
     /// metadata, so it bounds the JIT's memory: a large game compiled 400+ MiB in two minutes on
     /// the default 512 MiB per core, and 1 GiB with the metadata, without ever releasing any.
-    u32 jit_cache_mib{128};
+    /// 0 (the default) picks it from the app's memory limit (JitCacheMiBForLimit).
+    u32 jit_cache_mib{};
     /// D3D12 debug layer (renderer_debug); PC only, the console has no SDK layers.
     bool debug_layer{};
     /// With the debug layer, GPU-based validation too ("debug_layer=gbv").
@@ -468,7 +469,9 @@ int RunHeadlessBoot(const std::string& launch_path, const BootSurface& surface,
     WriteDiag(config.cpu_accuracy == Settings::CpuAccuracy::Accurate
                   ? "step: CPU accuracy Accurate" : "step: CPU accuracy Auto");
     AudioCore::Sink::SetXAudio2ProfileEnabled(config.audio_profile);
-    Core::CpuProfile::SetEnabled(config.cpu_profile);
+    // Settings > System > performance diagnostics also times the guest JIT, so a player's log
+    // shows whether the CPU-side hitches are code being compiled during play.
+    Core::CpuProfile::SetEnabled(config.cpu_profile || LoadSystemSettings().performance_diagnostics);
     // Read when Core::System builds the kernel's cores.
     Kernel::PhysicalCore::SetIdleSpinPolicy(config.idle_spin);
     // Read by the host timing thread's first wait.
@@ -488,6 +491,10 @@ int RunHeadlessBoot(const std::string& launch_path, const BootSurface& surface,
     // Keep the shared setting for other backends. D3D12 prepares on workers and always waits
     // for the exact PSO when a dependent draw reaches the command stream.
     Settings::values.use_asynchronous_shaders.SetValue(config.async_shaders);
+    if (config.jit_cache_mib == 0) {
+        u64 used{}, limit{};
+        config.jit_cache_mib = JitCacheMiBForLimit(QueryAppMemory(used, limit) ? limit : 0);
+    }
     WriteDiag(std::string("step: fastmem ") +
               (config.fastmem == BootConfig::Fastmem::Off      ? "off"
                : config.fastmem == BootConfig::Fastmem::Auto   ? "auto -> page table"

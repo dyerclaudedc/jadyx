@@ -14,8 +14,12 @@ constexpr std::uint64_t M = PrewarmBudget::MiB;
 void TestDefaultsAndClamp() {
     assert(PrewarmBudget{}.MiBPerCore() == 64);
     assert(PrewarmBudget{}.BytesPerCore() == 64 * M);
-    assert(PrewarmBudget{-3}.Step() == 0);
+    assert(PrewarmBudget{-3}.Step() == PrewarmBudget::BOOST_STEP);
+    assert(PrewarmBudget{-1}.MiBPerCore() == 96);
     assert(PrewarmBudget{99}.MiBPerCore() == 16);
+    assert(Jadyx::JitCacheMiBForLimit(5120 * M) == 192);
+    assert(Jadyx::JitCacheMiBForLimit(1024 * M) == 128);
+    assert(Jadyx::JitCacheMiBForLimit(0) == 128);
 }
 
 void TestLowersOncePerSession() {
@@ -46,12 +50,23 @@ void TestRaisesAfterAComfortableSession() {
     assert(!tight.Observe(1023 * M)); // between the thresholds: keep
     assert(!tight.Finish(3600) && tight.MiBPerCore() == 32);
 
-    PrewarmBudget top{};
+    PrewarmBudget top{PrewarmBudget::BOOST_STEP};
     assert(!top.Observe(4096 * M));
-    assert(!top.Finish(3600) && top.Step() == 0);
+    assert(!top.Finish(3600) && top.Step() == PrewarmBudget::BOOST_STEP);
+
+    // Above the default only with lots to spare (Smash: 2.2 GiB free for ten minutes).
+    PrewarmBudget near{};
+    assert(!near.Observe(1400 * M));
+    assert(!near.Finish(3600) && near.MiBPerCore() == 64);
+    PrewarmBudget roomy{};
+    assert(!roomy.Observe(2200 * M));
+    assert(roomy.Finish(600) && roomy.Step() == PrewarmBudget::BOOST_STEP && roomy.MiBPerCore() == 96);
+    PrewarmBudget boosted{PrewarmBudget::BOOST_STEP};
+    assert(boosted.Observe(200 * M) && boosted.MiBPerCore() == 64); // and back down at once
 
     PrewarmBudget unobserved{1}; // no samples: the minimum stays at its maximum
     assert(unobserved.Finish(PrewarmBudget::RAISE_SECONDS) && unobserved.Step() == 0);
+    assert(unobserved.Finish(PrewarmBudget::RAISE_SECONDS) && unobserved.Step() == PrewarmBudget::BOOST_STEP);
 }
 } // namespace
 
