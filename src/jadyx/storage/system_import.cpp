@@ -6,8 +6,11 @@
 #include <cctype>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <set>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 #include <archive.h>
 #include <archive_entry.h>
 #include <openssl/rand.h>
@@ -85,6 +88,7 @@ struct FirmwareInfo {
     std::string display;
     int generation{-1};
     std::set<std::pair<int,int>> areas;
+    unsigned removed{};
 };
 // The bundled libarchive intentionally excludes platform filename openers.
 // Supply bounded seekable input, as the mod importer already does.
@@ -105,15 +109,11 @@ struct ZipSource {
 FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress progress,std::stop_token stop) {
     FirmwareInfo info;bool system=false,mii=false,update=false;unsigned count{};
     std::set<u64> listed;
-    // Each title's meta lists its contents by content ID (the NCA's file name). A content whose own
-    // program ID lies outside the system range still belongs to the firmware when the meta that
-    // lists it is a system title; newer firmware (20.x and later) ships such data contents.
-    std::vector<std::pair<u64,std::string>> outside_contents;
-    struct Owner {
-        u64 title;
-        FileSys::TitleType type;
-    };
-    std::map<std::string,Owner> owner;
+    // Titles outside 0x010000000000xxxx wait for the meta: only the NCAs that stay count.
+    struct Outside{fs::path path;int generation;std::optional<std::pair<int,int>> area;};
+    std::map<u64,std::vector<Outside>> outside;
+    const auto keep=[&info](int generation,const std::optional<std::pair<int,int>>& area){
+        info.generation=(std::max)(info.generation,generation);if(area)info.areas.insert(*area);};
     if(!fs::exists(folder)){Require(!strict,"firmware_incomplete");return info;}
     FileSys::RealVfsFilesystem vfs;
     for(const auto& file:fs::directory_iterator{folder}) {
@@ -126,39 +126,27 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
         if(R_FAILED(header.Initialize(raw,FileSys::GetCryptoConfiguration(),FileSys::GetNcaCompressionConfiguration()))){Require(!strict,"firmware_keys");continue;}
         FileSys::NCA nca{raw};
         if(nca.GetStatus()!=Loader::ResultStatus::Success){Require(!strict,"firmware_keys");continue;}
-        // Firmware also ships contents outside 0x010000000000xxxx (e.g. 01008BB00013C000); they are
-        // allowed when the SystemUpdate meta lists their title or a system title's meta lists them.
-        if((nca.GetTitleId()>>16)!=(0x0100000000000000ULL>>16)) {
-            auto name=Lower(Utf8(file.path().stem()));
-            // Meta contents are named "<id>.cnmt.nca".
-            if(name.ends_with(".cnmt"))name.resize(name.size()-5);
-            outside_contents.emplace_back(nca.GetTitleId(),std::move(name));
+        // A meta NCA always holds a PFS0. Opening without one means the keys read the header but not
+        // the content (e.g. a wrong key_area_key_application_00): the SystemUpdate meta is lost and
+        // system titles outside 0x010000000000xxxx would be taken for games.
+        if(nca.GetType()==FileSys::NCAContentType::Meta&&nca.GetSubdirectories().empty()) {
+            LOG_WARNING(Frontend, "Firmware import: the meta NCA '{}' ({:016X}, key generation {}) could not be decrypted",
+                        Utf8(file.path().filename()), nca.GetTitleId(), header.GetKeyGeneration());
+            Require(!strict,"firmware_keys");continue;
         }
-        if(nca.GetType()==FileSys::NCAContentType::Meta&&!nca.GetSubdirectories().empty())
-            for(const auto& entry:nca.GetSubdirectories()[0]->GetFiles()) {
-                if(Lower(Utf8(fs::path{entry->GetName()}.extension()))!=".cnmt")continue;
-                const FileSys::CNMT meta{entry};
-                constexpr char hex[]="0123456789abcdef";
-                for(const auto& record:meta.GetContentRecords()) {
-                    std::string id;
-                    for(const auto byte:record.nca_id){id+=hex[byte>>4];id+=hex[byte&15];}
-                    owner.emplace(id,Owner{meta.GetTitleID(),meta.GetType()});
-                }
-                // A meta also vouches for its own content (the "<id>.cnmt.nca" it came from).
-                auto self=Lower(Utf8(file.path().stem()));
-                if(self.ends_with(".cnmt"))self.resize(self.size()-5);
-                owner.emplace(self,Owner{meta.GetTitleID(),meta.GetType()});
-            }
+        // Firmware also ships a few system titles outside 0x010000000000xxxx (e.g. 01008BB00013C000);
+        // those are allowed only when the SystemUpdate meta lists them.
+        const int generation=static_cast<int>((std::max)(nca.GetKeyGeneration(),u8{1})-1);
+        std::optional<std::pair<int,int>> area;
+        if(header.GetKeyIndex()<3)area=std::pair{static_cast<int>((std::max)(header.GetKeyGeneration(),u8{1})-1),static_cast<int>(header.GetKeyIndex())};
+        if((nca.GetTitleId()>>16)!=(0x0100000000000000ULL>>16))outside[nca.GetTitleId()].push_back({file.path(),generation,area});
+        else keep(generation,area);
         if(nca.GetTitleId()==0x0100000000000816ULL&&nca.GetType()==FileSys::NCAContentType::Meta&&
            !nca.GetSubdirectories().empty())
-            // Its one .cnmt, whatever the firmware names it.
-            for(const auto& cnmt:nca.GetSubdirectories()[0]->GetFiles()) {
-                if(Lower(Utf8(fs::path{cnmt->GetName()}.extension()))!=".cnmt")continue;
+            if(const auto cnmt=nca.GetSubdirectories()[0]->GetFile("SystemUpdate_0100000000000816.cnmt")) {
                 update=true;
                 for(const auto& record:FileSys::CNMT{cnmt}.GetMetaRecords())listed.insert(record.title_id);
             }
-        info.generation=(std::max)(info.generation,static_cast<int>((std::max)(nca.GetKeyGeneration(),u8{1})-1));
-        if(header.GetKeyIndex()<3)info.areas.emplace(static_cast<int>((std::max)(header.GetKeyGeneration(),u8{1})-1),header.GetKeyIndex());
         if(nca.GetTitleId()==0x0100000000000809ULL&&nca.GetType()==FileSys::NCAContentType::Data) {
             const auto romfs=nca.GetRomFS()?FileSys::ExtractRomFS(nca.GetRomFS()):nullptr;
             const auto version=romfs?romfs->GetFile("file"):nullptr;
@@ -173,30 +161,21 @@ FirmwareInfo InspectFirmware(const fs::path& folder,bool strict,SystemProgress p
         mii|=nca.GetTitleId()==0x0100000000001009ULL&&nca.GetType()==FileSys::NCAContentType::Program;
         if(progress)progress(count,0);
     }
-    // System metas (programs, data, the update itself, boot packages) are below 0x80; games,
-    // their updates and DLC are 0x80 and up, and stay refused.
-    const auto system_meta=[&](const Owner& meta) {
-        return static_cast<u8>(meta.type)<static_cast<u8>(FileSys::TitleType::Application)||
-               (meta.title>>16)==(0x0100000000000000ULL>>16)||listed.contains(meta.title);
-    };
-    std::string refused;std::size_t refused_count{};
-    for(const auto& [title,name]:outside_contents) {
-        if(update&&listed.contains(title))continue;
-        const auto found=owner.find(name);
-        if(found!=owner.end()&&system_meta(found->second))continue;
-        if(++refused_count<=6)
-            refused+=fmt::format(" {:016X}/{}/owner={:016X}:{:02X}",title,name.substr(0,8),
-                                 found!=owner.end()?found->second.title:0,
-                                 found!=owner.end()?static_cast<unsigned>(found->second.type):0xFFu);
-    }
-    if(refused_count) {
-        // jadyx_diag.txt records every C++ throw with its message, and the portal's log export
-        // carries that file: a thrown and caught detail is how this reaches a report.
-        const auto detail=fmt::format("firmware_detail ncas={} update={} listed={} metas={} refused={}{}",count,
-                                      update,listed.size(),owner.size(),refused_count,refused);
-        LOG_WARNING(Frontend,"{}",detail);
-        try{throw std::runtime_error(detail);}catch(const std::runtime_error&){}
-        Require(false,"firmware_game");
+    // Players keep their dumps together, so a game NCA often sits next to the firmware. A staged
+    // import is a copy: leaving those files out installs the firmware and loses nothing, instead
+    // of refusing the whole package. Titles the SystemUpdate meta lists are real system content
+    // and stay; the installed folder is only inspected, never trimmed.
+    for(const auto& [title,files]:outside) {
+        if((update&&listed.contains(title))||!strict) {
+            for(const auto& file:files)keep(file.generation,file.area);
+            continue;
+        }
+        for(const auto& file:files) {
+            LOG_INFO(Frontend, "Firmware import: leaving out the game NCA {:016X} ('{}')", title,
+                     Utf8(file.path.filename()));
+            // A file left behind would be published inside the firmware folder.
+            std::error_code error;Require(fs::remove(file.path,error)&&!error,"disk");++info.removed;
+        }
     }
     Require(!strict||(system&&mii),"firmware_incomplete");return info;
 }
@@ -311,6 +290,7 @@ std::unique_ptr<PreparedSystemImport> InspectSystemStage(fs::path stage,FileImpo
         review.incoming_firmware=incoming.display;review.required_generation=incoming.generation;
         review.incoming_generation=review.installed_generation;
         if(!installed.display.empty()&&incoming.version<installed.version)review.warnings.push_back("firmware_downgrade");
+        if(incoming.removed)review.warnings.push_back("firmware_games_removed");
     }else{
         review.incoming_firmware=installed.display;
         const auto destination=SystemDestination(kind);
@@ -367,7 +347,8 @@ std::wstring DescribeSystemReview(const SystemReview& review) {
         wide(review.incoming_firmware.empty()?"—":review.incoming_firmware),review.installed_generation<0?L"—":std::to_wstring(review.installed_generation),
         review.incoming_generation<0?L"—":std::to_wstring(review.incoming_generation)});
     for(const auto& warning:review.warnings){result+=L"\n";result+=Tr(warning=="firmware_downgrade"?Text::SystemFirmwareDowngrade:
-        warning=="keys_downgrade"?Text::SystemKeysDowngrade:warning=="keys_firmware_old"?Text::SystemKeysFirmwareWarning:Text::SystemVersionUnknown);}
+        warning=="keys_downgrade"?Text::SystemKeysDowngrade:warning=="keys_firmware_old"?Text::SystemKeysFirmwareWarning:
+        warning=="firmware_games_removed"?Text::SystemFirmwareGamesRemoved:Text::SystemVersionUnknown);}
     return result;
 }
 SystemImportBackend DefaultSystemImportBackend(){return {SystemDestination,CreateSystemStage,RemoveSystemStage,ExtractSystemZip,InspectSystemStage};}

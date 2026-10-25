@@ -17,7 +17,7 @@
 
   <Identity Name="DyerPlay"
             Publisher="CN=DyerPlay"
-            Version="0.3.8.5"
+            Version="0.3.8.6"
             ProcessorArchitecture="x64" />
 
   <Properties>

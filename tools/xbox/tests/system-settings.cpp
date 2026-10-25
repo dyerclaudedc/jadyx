@@ -101,6 +101,20 @@ int main() {
     page.settings.console_mode = Settings::ConsoleMode::Handheld;
     check(ResolveConsoleMode(page.settings, false) == Settings::ConsoleMode::Handheld);
     page.settings.console_mode.reset();
+    // Draw optimizations are on unless turned off; diagnostics are off unless turned on.
+    check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
+          page.selected == SystemPage::DrawOptimizations && page.settings.draw_optimizations);
+    check(SystemRowValue(page, SystemPage::DrawOptimizations) == L"Sí");
+    check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
+          !page.settings.draw_optimizations);
+    check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
+          page.settings.draw_optimizations);
+    check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
+          page.selected == SystemPage::PerformanceDiagnostics && !page.settings.performance_diagnostics);
+    check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
+          page.settings.performance_diagnostics);
+    check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::Changed &&
+          !page.settings.performance_diagnostics);
     check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
           page.selected == SystemPage::AdultMods);
     check(SystemRowValue(page, SystemPage::AdultMods) == L"Ocultos");
@@ -132,6 +146,8 @@ int main() {
           SystemRowValue(page, SystemPage::MultipleControllers) == L"No");
     check(HandleSystemInput(page, SystemInput::Right) == SystemPageEffect::Changed &&
           page.settings.multiple_controllers);
+    check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
+          page.selected == SystemPage::MiiEditor);
     check(HandleSystemInput(page, SystemInput::Down) == SystemPageEffect::None &&
           page.selected == SystemPage::ClearCache);
     check(HandleSystemInput(page, SystemInput::Confirm) == SystemPageEffect::ClearCache);

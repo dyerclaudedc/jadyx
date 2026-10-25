@@ -40,6 +40,12 @@ struct SystemSettings {
     /// handheld mode (up to 720p, lighter on the GPU and on render-target memory). nullopt is
     /// Automatic, resolved by ResolveConsoleMode for the console the app runs on.
     std::optional<Settings::ConsoleMode> console_mode;
+    /// Draw preparation shortcuts measured upstream but not on by default there: short uniform
+    /// copies, sampler reuse within a draw and the previous draw's pipeline while its key's
+    /// registers did not change. Off restores the plain path, in case a game draws wrongly.
+    bool draw_optimizations{true};
+    /// Per-draw CPU timers and their report in the log (costs a little; for diagnosing).
+    bool performance_diagnostics{};
 
     bool operator==(const SystemSettings&) const = default;
 };

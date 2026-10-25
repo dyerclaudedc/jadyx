@@ -18,7 +18,7 @@
 namespace Jadyx {
 
 struct SystemPage {
-    enum Row : std::size_t { UserName, InterfaceLanguage, GameLanguage, Region, PerformanceMode, AdultMods, PerformanceStats, PulseSessions, PlayTime, MultipleControllers, ClearCache, Updates, RowCount };
+    enum Row : std::size_t { UserName, InterfaceLanguage, GameLanguage, Region, PerformanceMode, DrawOptimizations, PerformanceDiagnostics, AdultMods, PerformanceStats, PulseSessions, PlayTime, MultipleControllers, MiiEditor, ClearCache, Updates, RowCount };
 
     bool updates_open{};
     std::size_t update_row{}, update_detail{}, update_scroll{};
@@ -41,6 +41,7 @@ enum class SystemPageEffect : std::uint8_t {
     NameDone,   ///< The editor closed with a new name in settings: save and apply.
     OpenUpdates,
     ClearCache, ///< Clear the library cache.
+    OpenMiiEditor, ///< Leave the library to run the firmware's Mii editor.
 };
 
 enum class SystemInput : std::uint8_t { Up, Down, Left, Right, Confirm, Back };
@@ -95,6 +96,12 @@ inline SystemPageEffect HandleSystemInput(SystemPage& page, SystemInput input) {
     case Row::PerformanceMode:
         settings.console_mode = StepChoice(settings.console_mode, SelectableConsoleModes(), back);
         return SystemPageEffect::Changed;
+    case Row::DrawOptimizations:
+        settings.draw_optimizations = !settings.draw_optimizations;
+        return SystemPageEffect::Changed;
+    case Row::PerformanceDiagnostics:
+        settings.performance_diagnostics = !settings.performance_diagnostics;
+        return SystemPageEffect::Changed;
     case Row::AdultMods:
         settings.show_adult_mods = !settings.show_adult_mods;
         return SystemPageEffect::Changed;
@@ -114,6 +121,8 @@ inline SystemPageEffect HandleSystemInput(SystemPage& page, SystemInput input) {
         return input == SystemInput::Confirm ? SystemPageEffect::OpenUpdates : SystemPageEffect::None;
     case Row::ClearCache:
         return input == SystemInput::Confirm ? SystemPageEffect::ClearCache : SystemPageEffect::None;
+    case Row::MiiEditor:
+        return input == SystemInput::Confirm ? SystemPageEffect::OpenMiiEditor : SystemPageEffect::None;
     case Row::RowCount:
         break;
     }
@@ -147,11 +156,14 @@ inline I18n::Text SystemRowTitle(SystemPage::Row row) {
     case SystemPage::GameLanguage:      return Text::GameLanguage;
     case SystemPage::Region:            return Text::ConsoleRegion;
     case SystemPage::PerformanceMode:   return Text::PerformanceMode;
+    case SystemPage::DrawOptimizations: return Text::DrawOptimizations;
+    case SystemPage::PerformanceDiagnostics: return Text::PerformanceDiagnostics;
     case SystemPage::PerformanceStats:  return Text::PerformanceStats;
     case SystemPage::AdultMods:         return Text::ModsAdult;
     case SystemPage::PulseSessions:     return Text::PulseSessions;
     case SystemPage::PlayTime:          return Text::PlayTimeTracking;
     case SystemPage::MultipleControllers: return Text::MultipleControllers;
+    case SystemPage::MiiEditor:         return Text::MiiEditor;
     default:                            return Text::ClearLibraryCache;
     }
 }
@@ -165,11 +177,14 @@ inline I18n::Text SystemRowHint(SystemPage::Row row) {
     case SystemPage::GameLanguage:      return Text::GameLanguageHint;
     case SystemPage::Region:            return Text::ConsoleRegionHint;
     case SystemPage::PerformanceMode:   return Text::PerformanceModeHint;
+    case SystemPage::DrawOptimizations: return Text::DrawOptimizationsHint;
+    case SystemPage::PerformanceDiagnostics: return Text::PerformanceDiagnosticsHint;
     case SystemPage::PerformanceStats:  return Text::PerformanceStatsHint;
     case SystemPage::AdultMods:         return Text::ModsAdultHint;
     case SystemPage::PulseSessions:     return Text::PulseSessionsHint;
     case SystemPage::PlayTime:          return Text::PlayTimeTrackingHint;
     case SystemPage::MultipleControllers: return Text::MultipleControllersHint;
+    case SystemPage::MiiEditor:         return Text::MiiEditorHint;
     default:                            return Text::ClearLibraryCacheHint;
     }
 }
@@ -199,6 +214,10 @@ inline std::wstring SystemRowValue(const SystemPage& page, SystemPage::Row row) 
         return automatic(I18n::Tr(ConsoleModeText(AutomaticConsoleMode(page.series_s))));
     case SystemPage::PerformanceStats:
         return std::wstring{I18n::Tr(settings.show_performance_stats ? Text::Yes : Text::No)};
+    case SystemPage::DrawOptimizations:
+        return std::wstring{I18n::Tr(settings.draw_optimizations ? Text::Yes : Text::No)};
+    case SystemPage::PerformanceDiagnostics:
+        return std::wstring{I18n::Tr(settings.performance_diagnostics ? Text::Yes : Text::No)};
     case SystemPage::AdultMods:
         return std::wstring{I18n::Tr(settings.show_adult_mods ? Text::ModsAdultShown : Text::ModsAdultHidden)};
     case SystemPage::PulseSessions:

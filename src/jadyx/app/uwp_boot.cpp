@@ -62,6 +62,7 @@
 #include "core/device_memory.h"
 #include "video_core/host1x/host1x.h"
 #include "video_core/host1x/syncpoint_manager.h"
+#include "core/file_sys/content_archive.h"
 #include "core/file_sys/control_metadata.h"
 #include "core/file_sys/registered_cache.h"
 #include "core/file_sys/vfs/vfs_real.h"
@@ -98,6 +99,7 @@
 #include "jadyx/app/prewarm_budget.h"
 #include "jadyx/pulse/pulse_gate.h"
 #include "jadyx/pulse/pulse_screen.h"
+#include "jadyx/library/game_library.h"
 #include "jadyx/library/play_history.h"
 #include "jadyx/pulse/pulse_sessions.h"
 #include "jadyx/pulse/pulse_store_gate.h"
@@ -203,6 +205,8 @@ constexpr int RETURN_TO_LIBRARY = 10;
 /// A Pulse session failed to resume after the game was loaded into this System: boot it again,
 /// fresh (BootConfig::pulse_resume off). The session stays where it was.
 constexpr int PULSE_RESUME_FAILED = 18;
+/// The library asked for the Mii editor and the firmware does not have it.
+constexpr int MII_EDITOR_MISSING = 19;
 
 /// Where the renderer presents: the CoreWindow (as IUnknown*) and its size in physical pixels.
 /// A null window selects the Null renderer.
@@ -413,8 +417,20 @@ struct BootConfig {
 constexpr u32 DEFAULT_GAME_RUN_SECONDS = 120;
 
 // Returns a process exit-style status. 0 == boot reached the run phase cleanly.
-int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
+int RunHeadlessBoot(const std::string& launch_path, const BootSurface& surface,
                     const BootConfig& config) {
+    // The library's Mii editor entry boots the firmware's applet instead of a game.
+    const bool mii_editor = launch_path == MiiEditorLaunch;
+    std::string nro_path = launch_path;
+    // The editor is not a game: no performance overlay over it; games get the player's choice back.
+    struct OverlayRestore {
+        bool active;
+        ~OverlayRestore() {
+            if (active)
+                VideoCore::performance_overlay_enabled.store(LoadSystemSettings().show_performance_stats,
+                                                             std::memory_order_relaxed);
+        }
+    } overlay_restore{mii_editor};
     if (!config.log_filter.empty()) {
         Settings::values.log_filter = config.log_filter;
     }
@@ -442,6 +458,8 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
               " ms");
     WriteDiag("step: device " + std::string(Jadyx::ConsoleModelName(Jadyx::DetectConsoleModel())));
     ApplyHeadlessBootSettings(config.null_renderer ? BootSurface{} : surface, nro_path);
+    // After the System settings, which turn the overlay on when the player has it on.
+    if (mii_editor) VideoCore::performance_overlay_enabled.store(false, std::memory_order_relaxed);
     if (config.null_audio) {
         Settings::values.sink_id = Settings::AudioEngine::Null;
     }
@@ -514,7 +532,12 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
     D3D12::SetCloseProbeEnabled(config.close_probe);
     D3D12::SetPipelineEviction(config.pso_eviction);
     D3D12::SetPipelinePrewarm(config.pso_prewarm);
-    VideoCore::Perf::SetDetailedGpuProfile(config.gpu_profile);
+    // Settings > System (Dyer Play): the draw shortcuts, on unless turned off, and the per-draw
+    // timers. boot.cfg can still turn either on for a test package.
+    const auto system_settings = LoadSystemSettings();
+    const bool draw_optimizations = system_settings.draw_optimizations;
+    const bool gpu_profile = config.gpu_profile || system_settings.performance_diagnostics;
+    VideoCore::Perf::SetDetailedGpuProfile(gpu_profile);
     if (config.dump_guest_shaders) Settings::values.dump_guest_shaders.SetValue(true);
     VideoCommon::FullCapture::Enable(config.full_gpu_capture);
     VideoCommon::FullCapture::RequestSelfTest(config.full_gpu_capture_self_test);
@@ -530,9 +553,14 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
     Settings::values.async_presentation.SetValue(config.async_present);
     if (config.upscaling) ApplyUpscaling(*config.upscaling); // before the renderer exists
     D3D12::SetAsyncRecording(config.async_record);
-    D3D12::PipelineKeyTracking::SetMode(config.pipeline_key_reuse);
-    D3D12::SetUniformUploadCopy(config.upload_copy);
-    D3D12::SetDrawSamplerReuse(config.draw_sampler_reuse);
+    using KeyMode = D3D12::PipelineKeyTracking::Mode;
+    const auto key_mode = config.pipeline_key_reuse == KeyMode::Off && draw_optimizations ? KeyMode::On
+                                                                                          : config.pipeline_key_reuse;
+    D3D12::PipelineKeyTracking::SetMode(key_mode);
+    D3D12::SetUniformUploadCopy(config.upload_copy || draw_optimizations);
+    D3D12::SetDrawSamplerReuse(config.draw_sampler_reuse || draw_optimizations);
+    WriteDiag(std::string("step: draw optimizations ") + (draw_optimizations ? "on" : "off") +
+              (gpu_profile ? ", per-draw diagnostics on" : ""));
     D3D12::SetPixelShaderScratchMode(static_cast<D3D12::PixelShaderScratchMode>(config.ps_scratch));
     if (config.debug_layer) {
         Settings::values.renderer_debug = true;
@@ -641,12 +669,26 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
         applets.software_keyboard = std::move(keyboard);
         system.SetFrontendAppletSet(std::move(applets));
     }
-    if (const auto file = system.GetFilesystem()->OpenFile(nro_path, FileSys::OpenMode::Read);
+    // As Eden's firmware applet launcher: the applet's program from the system NAND, run as a
+    // library applet so AM hands it the input it would get from a game.
+    constexpr u64 mii_edit_program_id = static_cast<u64>(Service::AM::AppletProgramId::MiiEdit);
+    if (mii_editor) {
+        const auto applet = system.GetFileSystemController().GetSystemNANDContents()->GetEntry(
+            mii_edit_program_id, FileSys::ContentRecordType::Program);
+        if (!applet) {
+            WriteDiag("mii editor: not in the system NAND");
+            shutdown(); return MII_EDITOR_MISSING;
+        }
+        nro_path = applet->GetFullPath();
+        system.GetFrontendAppletHolder().SetCurrentAppletId(Service::AM::AppletId::MiiEdit);
+        WriteDiag("step: mii editor from the system NAND");
+    } else if (const auto file = system.GetFilesystem()->OpenFile(nro_path, FileSys::OpenMode::Read);
         file != nullptr && manual_provider.AddEntriesFromContainer(file)) {
         WriteDiag("step: game contents registered");
     }
-    const auto content = Content::ResolveLaunchContent(*system.GetFilesystem(), nro_path, manual_provider,
-                                                       Content::ConsumeAllowMissing(nro_path), {}, Content::ReportedSystemVersion(system));
+    const auto content = mii_editor ? Content::LaunchResolution{} :
+        Content::ResolveLaunchContent(*system.GetFilesystem(), nro_path, manual_provider,
+                                      Content::ConsumeAllowMissing(nro_path), {}, Content::ReportedSystemVersion(system));
     if (content.error != Content::Error::None) {
         WriteDiag("content: launch blocked error=" + std::to_string(static_cast<int>(content.error)));
         shutdown(); return 16;
@@ -662,12 +704,26 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
 
     // As yuzu_cmd. Without the Application applet id, AM never sends the focus messages and a game
     // waits for them forever after its first ReceiveMessage (homebrew does not wait).
-    Service::AM::FrontendAppletParameters load_parameters{
-        .applet_id = Service::AM::AppletId::Application,
-    };
+    auto load_parameters = mii_editor ?
+        Service::AM::FrontendAppletParameters{
+            .program_id = mii_edit_program_id,
+            .applet_id = Service::AM::AppletId::MiiEdit,
+            .applet_type = Service::AM::AppletType::LibraryApplet,
+        } :
+        Service::AM::FrontendAppletParameters{
+            .applet_id = Service::AM::AppletId::Application,
+        };
+    // A guest that ends on its own (the Mii editor when the player is done) goes back to the
+    // library; the play loop sees this between frames.
+    std::atomic<bool> guest_exited{false};
+    system.RegisterExitCallback([&guest_exited] { guest_exited.store(true); });
+    // Run with no caller, the editor ends by asking to return to the main program
+    // (ILibraryAppletSelfAccessor::ExitProcessAndReturn); here that is the library.
+    if (mii_editor)
+        system.RegisterExecuteProgramCallback([&guest_exited](std::size_t) { guest_exited.store(true); });
     // Pulse: the identity this boot would save under, and the session it resumes if one matches.
     std::optional<Common::Pulse::Identity> pulse_identity;
-    if (config.pulse_sessions && PulseSessions::Enabled()) {
+    if (config.pulse_sessions && PulseSessions::Enabled() && !mii_editor) {
         try {
             const auto file = system.GetFilesystem()->OpenFile(nro_path, FileSys::OpenMode::Read);
             const auto user = system.GetProfileManager().GetUser(0);
@@ -849,7 +905,8 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
         WriteDiag("step: system.Run() issued, playing until the app is closed | " + MemoryReport());
         // Play history (play_history.h): the launch is recorded now, play time while the guest runs
         // (never with the menu open), saved each minute since the dashboard can end the process.
-        PlaySession play_session{nro_path, program_id};
+        std::optional<PlaySession> play_session;
+        if (!mii_editor) play_session.emplace(nro_path, program_id);
         // In-game menu (game_menu.h): the guest pauses while it is open. The frontend draws it with
         // real text (game_menu_surface.h) and the renderer copies it over the last frame. Its
         // cheats page changes the running game's cheats at once: the engine reloads them on its
@@ -1001,7 +1058,7 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
         u64 resume_frames = 0;
         for (u32 tick = 1;; ++tick) {
             std::this_thread::sleep_for(TICK);
-            play_session.Tick(!menu);
+            if (play_session) play_session->Tick(!menu);
             if (u64 used{}, limit{}; config.memory_audit && tick % 10 == 0 &&
                                      QueryAppMemory(used, limit)) {
                 const u64 headroom = limit > used ? limit - used : 0;
@@ -1064,6 +1121,13 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
                 LOG_INFO(Frontend, "Headless boot: session closed with Q.");
                 return 0;
             }
+            if (guest_exited.load()) {
+                WriteDiag("step: the guest exited after " + std::to_string(tick / 50) +
+                          " s; back to the library | " + MemoryReport());
+                finish_prewarm_budget(tick);
+                shutdown();
+                return RETURN_TO_LIBRARY;
+            }
             if (keyboard_applet) {
                 bool changed = false;
                 for (const KeyboardEvent& event : keyboard_applet->TakeEvents())
@@ -1113,7 +1177,7 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
                                                                Settings::values.fsr_sharpening_slider.GetValue()),
                                                   config.material_capture_menu, config.hunt_menu,
                                                   !game_frame.pixels.empty()},
-                                 program_id != 0);
+                                 program_id != 0 && !mii_editor);
                     if (game_title.empty()) {
                         std::string title;
                         void(system.GetAppLoader().ReadTitle(title));
@@ -1127,7 +1191,7 @@ int RunHeadlessBoot(const std::string& nro_path, const BootSurface& surface,
                                 game_details += (game_details.empty() ? L"v" : L" · v") + Utf8ToUtf16(version);
                         }
                     }
-                    if (program_id != 0) {
+                    if (program_id != 0 && !mii_editor) {
                         menu->SetCheatsOn(cheats_on(Cheats::LoadCatalog(
                             Cheats::TitleLoadDirectory(program_id), cheat_game.build_id)));
                         menu->SetModsOn(Mods::ActiveMods(Mods::DefaultModPaths(), program_id));
@@ -2889,7 +2953,7 @@ struct BootView : implements<BootView, IFrameworkViewSource, IFrameworkView> {
                     if (library_game) {
                         config.play = true;
                         config.run_seconds = 0;
-                        config.pulse_sessions = true;
+                        config.pulse_sessions = *library_game != Jadyx::MiiEditorLaunch;
                     }
                     if (library_game || !config.game.empty()) {
                         nro_path = library_game ? *library_game : local_path + "\\games\\" + config.game;
@@ -2956,6 +3020,11 @@ struct BootView : implements<BootView, IFrameworkViewSource, IFrameworkView> {
             if (show_library && boot_status.load() == 16) {
                 library_error = Jadyx::I18n::ToUtf8(Jadyx::I18n::Tr(Jadyx::I18n::Text::ContentUnavailable));
                 WriteDiag("content/storage failure handled; returning to library");
+                continue;
+            }
+            if (show_library && boot_status.load() == Jadyx::MII_EDITOR_MISSING) {
+                library_error = Jadyx::I18n::ToUtf8(Jadyx::I18n::Tr(Jadyx::I18n::Text::MiiEditorMissing));
+                WriteDiag("mii editor missing; returning to library");
                 continue;
             }
             if (show_library && boot_status.load() == 15) {

@@ -24,6 +24,8 @@ constexpr auto PlayTimeKey = L"system_track_play_time";
 constexpr auto MultipleControllersKey = L"system_multiple_controllers";
 constexpr auto UpscalingKey = L"system_upscaling";
 constexpr auto ConsoleModeKey = L"system_console_mode";
+constexpr auto DrawOptimizationsKey = L"system_draw_optimizations";
+constexpr auto DiagnosticsKey = L"system_performance_diagnostics";
 
 /// Saved as the enum's value, or -1 for "follow the system". A value that is not a selectable
 /// option (an older or newer build's) also falls back to the system.
@@ -62,6 +64,10 @@ SystemSettings LoadSystemSettings() {
         if (values.HasKey(MultipleControllersKey))
             settings.multiple_controllers = winrt::unbox_value<bool>(values.Lookup(MultipleControllersKey));
         settings.console_mode = LoadChoice(values, ConsoleModeKey, SelectableConsoleModes());
+        if (values.HasKey(DrawOptimizationsKey))
+            settings.draw_optimizations = winrt::unbox_value<bool>(values.Lookup(DrawOptimizationsKey));
+        if (values.HasKey(DiagnosticsKey))
+            settings.performance_diagnostics = winrt::unbox_value<bool>(values.Lookup(DiagnosticsKey));
         if (values.HasKey(UpscalingKey))
             settings.upscaling = UpscalingFromValue(winrt::unbox_value<int32_t>(values.Lookup(UpscalingKey)))
                                      .value_or(Upscaling::Bilinear);
@@ -83,6 +89,8 @@ bool SaveSystemSettings(const SystemSettings& settings) {
         values.Insert(MultipleControllersKey, winrt::box_value(settings.multiple_controllers));
         values.Insert(UpscalingKey, winrt::box_value(static_cast<int32_t>(settings.upscaling)));
         values.Insert(ConsoleModeKey, winrt::box_value(ChoiceValue(settings.console_mode)));
+        values.Insert(DrawOptimizationsKey, winrt::box_value(settings.draw_optimizations));
+        values.Insert(DiagnosticsKey, winrt::box_value(settings.performance_diagnostics));
         return true;
     } catch (...) { return false; }
 }
